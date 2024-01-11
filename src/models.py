@@ -500,8 +500,7 @@ def createUNetModel_My_All(
     return model
 
 
-def createUNetModel_My(
-    model_name, ptrnShape, Nc, filters, out_size, l2_val, dropout_val, batch_norm
+def createUNetModel_My(ptrnShape, Nc, filters, out_size, l2_val, dropout_val, batch_norm
 ):
     # Здесь используется функциональная модель API для нелинейных взаимодействия межуд слоями
     # Разница заключается в том, что входной слой для последовательной модели создается и применяется неявно
@@ -510,99 +509,96 @@ def createUNetModel_My(
     # необходимо явно определить входной слой
 
     if K.image_data_format() == "channels_last":
-        inputs = Input(ptrnShape)
         axis = 3
     else:
         ptrnShape = tuple(reversed(ptrnShape))  # перевертывание кортежа
-        inputs = Input(ptrnShape)
         axis = 1
+    inputs = Input(ptrnShape)
 
-    if model_name == "Unet_V_1":
-        # inputs2=refine(inputs,por=64.0)
-        conv_1 = double_conv_layer(inputs, Nc, filters, l2_val, dropout_val, batch_norm)
-        down_1 = MaxPooling2D(pool_size=(2, 2), strides=2)(conv_1)
-        conv_2 = double_conv_layer(
-            down_1, Nc, 2 * filters, l2_val, dropout_val, batch_norm
+    conv_1 = double_conv_layer(inputs, Nc, filters, l2_val, dropout_val, batch_norm)
+    down_1 = MaxPooling2D(pool_size=(2, 2), strides=2)(conv_1)
+    conv_2 = double_conv_layer(
+        down_1, Nc, 2 * filters, l2_val, dropout_val, batch_norm
+    )
+    down_2 = MaxPooling2D(pool_size=(2, 2), strides=2)(conv_2)
+
+    conv_3 = double_conv_layer(
+        down_2, Nc, 4 * filters, l2_val, dropout_val, batch_norm
+    )
+    down_3 = MaxPooling2D(pool_size=(2, 2), strides=2)(conv_3)
+
+    conv_4 = double_conv_layer(
+        down_3, Nc, 8 * filters, l2_val, dropout_val, batch_norm
+    )
+    down_4 = MaxPooling2D(pool_size=(2, 2), strides=2)(conv_4)
+
+    conv_5 = double_conv_layer(
+        down_4, Nc, 16 * filters, l2_val, dropout_val, batch_norm
+    )
+
+    up_1 = UpSampling2D((2, 2))(conv_5)
+    conv_61 = Conv2D(
+        8 * filters,
+        (2, 2),
+        activation="relu",
+        padding="same",
+        kernel_regularizer=l2(l2_val),
+    )(up_1)
+    concat_1 = concatenate([conv_4, conv_61], axis=axis)
+    conv_6 = double_conv_layer(
+        concat_1, Nc, 8 * filters, l2_val, dropout_val, batch_norm
+    )
+
+    up_2 = UpSampling2D((2, 2))(conv_6)
+    conv_71 = Conv2D(
+        4 * filters,
+        (2, 2),
+        activation="relu",
+        padding="same",
+        kernel_regularizer=l2(l2_val),
+    )(up_2)
+    concat_2 = concatenate([conv_3, conv_71], axis=axis)
+    conv_7 = double_conv_layer(
+        concat_2, Nc, 4 * filters, l2_val, dropout_val, batch_norm
+    )
+
+    up_3 = UpSampling2D((2, 2))(conv_7)
+    conv_81 = Conv2D(
+        2 * filters,
+        (2, 2),
+        activation="relu",
+        padding="same",
+        kernel_regularizer=l2(l2_val),
+    )(up_3)
+    concat_3 = concatenate([conv_2, conv_81], axis=axis)
+    conv_8 = double_conv_layer(
+        concat_3, Nc, 2 * filters, l2_val, dropout_val, batch_norm
+    )
+
+    up_4 = UpSampling2D((2, 2))(conv_8)
+    conv_91 = Conv2D(
+        filters,
+        (2, 2),
+        activation="relu",
+        padding="same",
+        kernel_regularizer=l2(l2_val),
+    )(up_4)
+    concat_4 = concatenate([conv_1, conv_91], axis=axis)
+    conv_9 = double_conv_layer(
+        concat_4, Nc, filters, l2_val, dropout_val, batch_norm
+    )
+
+    if out_size == 1:
+        conv_10 = Conv2D(1, (1, 1), padding="same", kernel_regularizer=l2(l2_val))(
+            conv_9
         )
-        down_2 = MaxPooling2D(pool_size=(2, 2), strides=2)(conv_2)
+        conv_10 = Activation("sigmoid")(conv_10)
+    else:
+        conv_10 = Conv2D(
+            out_size, (1, 1), padding="same", kernel_regularizer=l2(l2_val)
+        )(conv_9)
+        conv_10 = Activation("softmax")(conv_10)
 
-        conv_3 = double_conv_layer(
-            down_2, Nc, 4 * filters, l2_val, dropout_val, batch_norm
-        )
-        down_3 = MaxPooling2D(pool_size=(2, 2), strides=2)(conv_3)
-
-        conv_4 = double_conv_layer(
-            down_3, Nc, 8 * filters, l2_val, dropout_val, batch_norm
-        )
-        down_4 = MaxPooling2D(pool_size=(2, 2), strides=2)(conv_4)
-
-        conv_5 = double_conv_layer(
-            down_4, Nc, 16 * filters, l2_val, dropout_val, batch_norm
-        )
-
-        up_1 = UpSampling2D((2, 2))(conv_5)
-        conv_61 = Conv2D(
-            8 * filters,
-            (2, 2),
-            activation="relu",
-            padding="same",
-            kernel_regularizer=l2(l2_val),
-        )(up_1)
-        concat_1 = concatenate([conv_4, conv_61], axis=axis)
-        conv_6 = double_conv_layer(
-            concat_1, Nc, 8 * filters, l2_val, dropout_val, batch_norm
-        )
-
-        up_2 = UpSampling2D((2, 2))(conv_6)
-        conv_71 = Conv2D(
-            4 * filters,
-            (2, 2),
-            activation="relu",
-            padding="same",
-            kernel_regularizer=l2(l2_val),
-        )(up_2)
-        concat_2 = concatenate([conv_3, conv_71], axis=axis)
-        conv_7 = double_conv_layer(
-            concat_2, Nc, 4 * filters, l2_val, dropout_val, batch_norm
-        )
-
-        up_3 = UpSampling2D((2, 2))(conv_7)
-        conv_81 = Conv2D(
-            2 * filters,
-            (2, 2),
-            activation="relu",
-            padding="same",
-            kernel_regularizer=l2(l2_val),
-        )(up_3)
-        concat_3 = concatenate([conv_2, conv_81], axis=axis)
-        conv_8 = double_conv_layer(
-            concat_3, Nc, 2 * filters, l2_val, dropout_val, batch_norm
-        )
-
-        up_4 = UpSampling2D((2, 2))(conv_8)
-        conv_91 = Conv2D(
-            filters,
-            (2, 2),
-            activation="relu",
-            padding="same",
-            kernel_regularizer=l2(l2_val),
-        )(up_4)
-        concat_4 = concatenate([conv_1, conv_91], axis=axis)
-        conv_9 = double_conv_layer(
-            concat_4, Nc, filters, l2_val, dropout_val, batch_norm
-        )
-
-        if out_size == 1:
-            conv_10 = Conv2D(1, (1, 1), padding="same", kernel_regularizer=l2(l2_val))(
-                conv_9
-            )
-            conv_10 = Activation("sigmoid")(conv_10)
-        else:
-            conv_10 = Conv2D(
-                out_size, (1, 1), padding="same", kernel_regularizer=l2(l2_val)
-            )(conv_9)
-            conv_10 = Activation("softmax")(conv_10)
-
-        model = Model(inputs, conv_10)
+    model = Model(inputs, conv_10)
 
     return model
