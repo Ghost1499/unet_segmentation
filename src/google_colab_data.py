@@ -32,12 +32,17 @@ from matplotlib import pyplot as plt
 from keras.preprocessing.image import ImageDataGenerator
 from keras.utils.generic_utils import get_custom_objects
 import random
-from my_fun_new_colab import loadTrainData_binary_colab,loadValData_binary_colab,testModel_binary,testModel_binary_val
-from my_fun_new_colab import createPtrns_Gray_AB,createPtrns_Bin_AB,pred_norm_img, loadTestData_binary_colab_AB
-from my_fun_new_colab import my_layer,shuffle_unson_write_AB,double_conv_layer,createUNetModel_My
-from my_fun_new_colab import createUNetModel_My_AB,createUNetModel_My_A,createUNetModel_My_All
-from my_fun_new_colab import f1_score,tversky,tversky_loss,dice_coef,dice_coef_loss
-from my_fun_new_colab import loadTrainData_binary_colab_AB,loadValData_binary_colab_AB,testModel_binary_AB,testModel_binary_val_AB
+from evaluate import testModel_binary, testModel_binary_AB, testModel_binary_val
+from load import loadTestData_binary_colab_AB, loadTrainData_binary_colab, loadTrainData_binary_colab_AB, loadValData_binary_colab_AB
+from make_patches import createPtrns_Bin_AB, createPtrns_Gray_AB
+from metrics import f1_score, tversky, tversky_loss
+from models import createUNetModel_My, createUNetModel_My_A, createUNetModel_My_AB, double_conv_layer, my_layer
+from load import loadValData_binary_colab
+from image_proccess import pred_norm_img
+from my_fun_new_colab import shuffle_unson_write_AB
+from models import createUNetModel_My_All
+from my_fun_new_colab import dice_coef,dice_coef_loss
+from evaluate import testModel_binary_val_AB
 #from google.colab.patches import cv2_imshow
 clahe = cv2.createCLAHE(clipLimit=1, tileGridSize=(32,32))#адападаптивная эквализация
 

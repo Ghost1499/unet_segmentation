@@ -20,7 +20,7 @@ from keras.optimizers import Adam
 from cv2 import imshow
 from cv2  import CLAHE
 from matplotlib import pyplot as plt
-from my_fun1 import pred_norm,loadTrainData,loadValData,createPatternsGrayBin_num_class
+from src.my_fun_new_colab import pred_norm,loadTrainData,loadValData,createPatternsGrayBin_num_class
 from my_fun1 import loadTrainData_binary,loadValData_binary,createPtrns,testModel_binary
 from my_fun1 import dice_coef,dice_coef_loss,jacard_coef,jacard_coef_loss
 from my_fun1 import double_conv_layer,createUNetModel,createUNetModel_My,createUNetModel_dconv,testModel
