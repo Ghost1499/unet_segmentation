@@ -1,6 +1,7 @@
+import keras
 from keras import backend as K
-from keras.layers import Activation, Add, Conv2D, Input, Layer, MaxPooling2D, UpSampling2D, concatenate
-from keras.models import Model, MaxPooling2D, UpSampling2D, concatenate
+from keras.layers import Activation, Add, Conv2D, Input, Layer, MaxPooling2D, UpSampling2D, concatenate, BatchNormalization, SpatialDropout2D
+from keras.models import Model #,MaxPooling2D, UpSampling2D, concatenate
 from keras.regularizers import l2
 import tensorflow as tf
 
