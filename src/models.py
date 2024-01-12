@@ -1,6 +1,6 @@
 import keras
 from keras import backend as K
-from keras.layers import Activation, Add, Conv2D, Input, Layer, MaxPooling2D, UpSampling2D, concatenate, BatchNormalization, SpatialDropout2D
+from keras.layers import Activation, Add, Conv2D, Input, Layer, MaxPooling2D, UpSampling2D, concatenate, BatchNormalization, SpatialDropout2D, Resizing
 from keras.models import Model #,MaxPooling2D, UpSampling2D, concatenate
 from keras.regularizers import l2
 import tensorflow as tf
@@ -500,7 +500,7 @@ def createUNetModel_My_All(
     return model
 
 
-def createUNetModel_My(ptrnShape, Nc, filters, out_size, l2_val, dropout_val, batch_norm
+def createUNetModel_My(input_shape,target_shape, Nc, filters, out_size, l2_val, dropout_val, batch_norm
 ):
     # Здесь используется функциональная модель API для нелинейных взаимодействия межуд слоями
     # Разница заключается в том, что входной слой для последовательной модели создается и применяется неявно
@@ -511,11 +511,12 @@ def createUNetModel_My(ptrnShape, Nc, filters, out_size, l2_val, dropout_val, ba
     if K.image_data_format() == "channels_last":
         axis = 3
     else:
-        ptrnShape = tuple(reversed(ptrnShape))  # перевертывание кортежа
+        input_shape = tuple(reversed(input_shape))  # перевертывание кортежа
         axis = 1
-    inputs = Input(ptrnShape)
+    inputs = Input(input_shape)
 
-    conv_1 = double_conv_layer(inputs, Nc, filters, l2_val, dropout_val, batch_norm)
+    resize_1 = Resizing(target_shape[0],target_shape[1])(inputs)
+    conv_1 = double_conv_layer(resize_1, Nc, filters, l2_val, dropout_val, batch_norm)
     down_1 = MaxPooling2D(pool_size=(2, 2), strides=2)(conv_1)
     conv_2 = double_conv_layer(
         down_1, Nc, 2 * filters, l2_val, dropout_val, batch_norm
