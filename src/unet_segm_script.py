@@ -40,7 +40,7 @@ def take_test_val_samples(take_rate, images_dir, masks_dir) -> None:
 
     ds = list(zip(image_paths, mask_paths, strict=True))
     taken_count = int(take_rate * len(ds))
-    RNG.shuffle(ds) # type: ignore
+    RNG.shuffle(ds)  # type: ignore
     taken_ds = ds[:taken_count]
 
     def move_taken_element(image_path: Path, mask_path: Path):
@@ -137,36 +137,44 @@ def train_model(model_name):
     with open(io_config.MODEL_SAVE_DIR / f"{model_name}_architecture.json") as f:
         json_model = f.read()
     model: keras.models.Model = model_from_json(json_model)
-    # dataset = np.load(DATASET_SAVE_DIR / f"{dataset_name}.npz")
-    image_shape = get_images_shapes(io_config.TRAIN_IMAGES_DIR)
+    # image_shape = get_images_shapes(io_config.TRAIN_IMAGES_DIR)
 
     ds_store = {}
     for name, (images_dir, masks_dir) in {
         "train": (io_config.TRAIN_IMAGES_DIR, io_config.TRAIN_MASKS_DIR),
         "val": (io_config.VAL_IMAGES_DIR, io_config.VAL_MASKS_DIR),
     }.items():
-        ds_dict = {}
-        for type, (dir, color_mode) in {
-            "images": (images_dir, "rgb"),
-            "masks": (masks_dir, "grayscale"),
-        }.items():
-            ds: tf.data.Dataset = keras.utils.image_dataset_from_directory(
-                dir,
-                labels=None, # type: ignore
-                color_mode=color_mode,
-                batch_size=None, # type: ignore
-                image_size=model_config.TARGET_SHAPE[0:2],
-            )  # type: ignore
-            # if type=='masks':
-            # ds = ds.map(lambda x: tf.image.resize(x, model_config.TARGET_SHAPE[0:2]))
-            ds_dict[type] = ds
-        ds_store[name] = (
-            tf.data.Dataset.zip(ds_dict["images"], ds_dict["masks"])
+        image_paths = [str(path) for path in paths_from_dir(images_dir)]
+        mask_paths = [str(path) for path in paths_from_dir(masks_dir)]
+
+        paths = list(zip(image_paths, mask_paths, strict=True))
+        RNG.shuffle(paths)  # type: ignore
+        paths_ds = tf.data.Dataset.from_tensor_slices(tuple(list(el) for el in zip(*paths)))
+
+        def load_images_masks(image_path, mask_path):
+            image = tf.io.read_file(image_path)
+            image = tf.io.decode_jpeg(image,channels=3)
+            image = tf.image.resize(image, model_config.TARGET_SHAPE[0:2])
+            image = tf.image.convert_image_dtype(image, dtype=tf.dtypes.float32)
+
+            mask = tf.io.read_file(mask_path)
+            mask = tf.io.decode_image(mask, channels=3, expand_animations=False)
+            mask = tf.image.rgb_to_grayscale(mask)
+            mask = tf.image.resize(mask, model_config.TARGET_SHAPE[0:2])
+            mask = tf.image.convert_image_dtype(mask, dtype=tf.dtypes.uint8)
+
+            # Ground truth labels are 1, 2, 3. Subtract one to make them 0, 1, 2:
+            return image, mask
+
+        ds = (
+            paths_ds.map(load_images_masks, num_parallel_calls=tf.data.AUTOTUNE)
             .shuffle(
                 ds_prepare_config.DS_SHUFFLE_BUFF_SIZE, ds_prepare_config.RANDOM_STATE
             )
             .batch(ds_prepare_config.BATCH_SIZE)
         )
+
+        ds_store[name] = ds
 
     opt = keras.optimizers.Adam(
         learning_rate=training_config.LEARNING_RATE,
@@ -195,14 +203,15 @@ def train_model(model_name):
         save_best_only=True,
         save_weights_only=False,
     )
-    tboard = TensorBoard(io_config.TENSORBOARD_LOG_DIR) # type: ignore
-    history = model.fit(
+    tboard = TensorBoard(io_config.TENSORBOARD_LOG_DIR)  # type: ignore
+    model.fit(
         ds_store["train"],
         epochs=training_config.EPOCHS,
         callbacks=[checkpointer, tboard],
         validation_data=ds_store["val"],
-        
+        shuffle=False
     )
+    model.save(io_config.MODEL_SAVE_DIR / f"{model_name}.keras")
 
 
 if __name__ == "__main__":
