@@ -1,7 +1,5 @@
-from collections import defaultdict
 from pathlib import Path
 from contextlib import redirect_stdout
-from pickle import TRUE
 from typing import Any, Generator, Union
 
 import numpy as np
@@ -14,25 +12,12 @@ from keras.callbacks import ModelCheckpoint, TensorBoard
 import tensorflow as tf
 from tqdm import tqdm
 from configs import io_config, model_config, training_config, ds_prepare_config
+from configs.training_config import COMPILE_CONFIGS
 
 from models import createUNetModel_My
 
 
 RNG = np.random.RandomState(ds_prepare_config.RANDOM_STATE)
-
-
-def constant_factory(value):
-    return lambda: value
-
-
-COMPILE_CONFIGS = defaultdict(
-    constant_factory({"loss": "categorical_crossentropy", "metrics": ["accuracy"]}),
-    {
-        1: {"loss": "sparse_categorical_crossentropy", "metrics": ["accuracy"]},
-        2: {"loss": "sparse_categorical_crossentropy", "metrics": ["accuracy"]},
-    },
-)
-DEBUG_MODEL = True
 
 
 def paths_from_dir(
@@ -212,9 +197,9 @@ def train_model(model_name):
 
         ds = (
             paths_ds.map(load_images_masks, num_parallel_calls=tf.data.AUTOTUNE)
-            .shuffle(
-                ds_prepare_config.DS_SHUFFLE_BUFF_SIZE, ds_prepare_config.RANDOM_STATE
-            )
+            # .shuffle(
+            #     ds_prepare_config.DS_SHUFFLE_BUFF_SIZE, ds_prepare_config.RANDOM_STATE
+            # )
             .batch(ds_prepare_config.BATCH_SIZE)
         )
 
@@ -229,7 +214,7 @@ def train_model(model_name):
 
     comp_config = COMPILE_CONFIGS[model_config.OUT_SIZE]
     comp_config["optimizer"] = optimaizer
-    comp_config["run_eagerly"] = DEBUG_MODEL
+    comp_config["run_eagerly"] = training_config.DEBUG_MODEL
     model.compile(**comp_config)
 
     checkpointer = ModelCheckpoint(
@@ -253,6 +238,6 @@ def train_model(model_name):
 if __name__ == "__main__":
     # pass
     # save_dataset_npy('carvana')
-    # save_model("unet0")
+    save_model("unet0")
     train_model("unet0")
     # test_load_images_masks()
