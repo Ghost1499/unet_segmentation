@@ -1,9 +1,11 @@
+from collections import defaultdict
 from pathlib import Path
 from contextlib import redirect_stdout
+from pickle import TRUE
 from typing import Any, Generator, Union
 
 import numpy as np
-from skimage.io import imread
+from skimage.io import imread, imshow, show
 from sklearn.model_selection import train_test_split
 import keras
 from keras.utils import plot_model
@@ -17,6 +19,20 @@ from models import createUNetModel_My
 
 
 RNG = np.random.RandomState(ds_prepare_config.RANDOM_STATE)
+
+
+def constant_factory(value):
+    return lambda: value
+
+
+COMPILE_CONFIGS = defaultdict(
+    constant_factory({"loss": "categorical_crossentropy", "metrics": ["accuracy"]}),
+    {
+        1: {"loss": "sparse_categorical_crossentropy", "metrics": ["accuracy"]},
+        2: {"loss": "sparse_categorical_crossentropy", "metrics": ["accuracy"]},
+    },
+)
+DEBUG_MODEL = True
 
 
 def paths_from_dir(
@@ -133,6 +149,32 @@ def save_model(model_name):
     )
 
 
+# def test_load_images_masks():
+#     def load_images_masks(image_path, mask_path):
+#         image = tf.io.read_file(image_path)
+#         image = tf.io.decode_jpeg(image, channels=3)
+#         image = tf.image.resize(image, model_config.TARGET_SHAPE[0:2])
+#         image = tf.image.convert_image_dtype(image, dtype=tf.dtypes.float32)
+
+#         mask = tf.io.read_file(mask_path)
+#         mask = tf.io.decode_image(mask, channels=3, expand_animations=False)
+#         mask = tf.image.rgb_to_grayscale(mask)
+#         mask = tf.image.resize(mask, model_config.TARGET_SHAPE[0:2])
+#         mask = tf.image.convert_image_dtype(mask, dtype=tf.dtypes.uint8)
+
+#         # Ground truth labels are 1, 2, 3. Subtract one to make them 0, 1, 2:
+#         return image, mask
+
+#     image, mask = load_images_masks(
+#         str(Path(r"C:\CSF\programs\Segmentation_cont\data\datasets\carvana\test\0cdf5b5d0ce1_03.jpg")),
+#         str(Path(r"C:\CSF\programs\Segmentation_cont\data\datasets\carvana\test_masks\0cdf5b5d0ce1_03_mask.gif"))
+#     )
+#     imshow(image)
+#     show()
+#     imshow(mask)
+#     show()
+
+
 def train_model(model_name):
     with open(io_config.MODEL_SAVE_DIR / f"{model_name}_architecture.json") as f:
         json_model = f.read()
@@ -149,11 +191,13 @@ def train_model(model_name):
 
         paths = list(zip(image_paths, mask_paths, strict=True))
         RNG.shuffle(paths)  # type: ignore
-        paths_ds = tf.data.Dataset.from_tensor_slices(tuple(list(el) for el in zip(*paths)))
+        paths_ds = tf.data.Dataset.from_tensor_slices(
+            tuple(list(el) for el in zip(*paths))
+        )
 
         def load_images_masks(image_path, mask_path):
             image = tf.io.read_file(image_path)
-            image = tf.io.decode_jpeg(image,channels=3)
+            image = tf.io.decode_jpeg(image, channels=3)  # type: ignore
             image = tf.image.resize(image, model_config.TARGET_SHAPE[0:2])
             image = tf.image.convert_image_dtype(image, dtype=tf.dtypes.float32)
 
@@ -176,25 +220,17 @@ def train_model(model_name):
 
         ds_store[name] = ds
 
-    opt = keras.optimizers.Adam(
+    optimaizer = keras.optimizers.Adam(
         learning_rate=training_config.LEARNING_RATE,
         beta_1=0.9,
         beta_2=0.999,
         amsgrad=False,
     )  # ,decay=1e-6)
 
-    if model_config.OUT_SIZE == 1:
-        model.compile(
-            optimizer=opt, loss="sparse_categorical_crossentropy", metrics=["accuracy"]
-        )
-    elif model_config.OUT_SIZE == 2:
-        model.compile(
-            optimizer=opt, loss="sparse_categorical_crossentropy", metrics=["accuracy"]
-        )
-    else:
-        model.compile(
-            optimizer=opt, loss="categorical_crossentropy", metrics=["accuracy"]
-        )
+    comp_config = COMPILE_CONFIGS[model_config.OUT_SIZE]
+    comp_config["optimizer"] = optimaizer
+    comp_config["run_eagerly"] = DEBUG_MODEL
+    model.compile(**comp_config)
 
     checkpointer = ModelCheckpoint(
         filepath=io_config.CHECKPOINTS_SAVE_DIR / f"{model_name}_{{epoch}}.keras",
@@ -209,7 +245,7 @@ def train_model(model_name):
         epochs=training_config.EPOCHS,
         callbacks=[checkpointer, tboard],
         validation_data=ds_store["val"],
-        shuffle=False
+        shuffle=False,
     )
     model.save(io_config.MODEL_SAVE_DIR / f"{model_name}.keras")
 
@@ -219,3 +255,4 @@ if __name__ == "__main__":
     # save_dataset_npy('carvana')
     # save_model("unet0")
     train_model("unet0")
+    # test_load_images_masks()
