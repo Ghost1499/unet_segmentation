@@ -1,7 +1,19 @@
 import keras
 from keras import backend as K
-from keras.layers import Activation, Add, Conv2D, Input, Layer, MaxPooling2D, UpSampling2D, concatenate, BatchNormalization, SpatialDropout2D, Resizing
-from keras.models import Model #,MaxPooling2D, UpSampling2D, concatenate
+from keras.layers import (
+    Activation,
+    Add,
+    Conv2D,
+    Input,
+    Layer,
+    MaxPooling2D,
+    UpSampling2D,
+    concatenate,
+    BatchNormalization,
+    SpatialDropout2D,
+    Resizing,
+)
+from keras.models import Model  # ,MaxPooling2D, UpSampling2D, concatenate
 from keras.regularizers import l2
 import tensorflow as tf
 
@@ -500,8 +512,9 @@ def createUNetModel_My_All(
     return model
 
 
-def createUNetModel_My(input_shape, Nc, filters, out_size, l2_val, dropout_val, batch_norm
-):
+def createUNetModel_My(
+    input_shape, Nc, filters, out_size, l2_val, dropout_val, batch_norm
+) -> Functional | Any:
     # Здесь используется функциональная модель API для нелинейных взаимодействия межуд слоями
     # Разница заключается в том, что входной слой для последовательной модели создается и применяется неявно
     # (и поэтому не будет доступен через атрибут .layers ),
@@ -518,19 +531,13 @@ def createUNetModel_My(input_shape, Nc, filters, out_size, l2_val, dropout_val, 
     # resize_1 = Resizing(target_shape[0],target_shape[1])(inputs)
     conv_1 = double_conv_layer(inputs, Nc, filters, l2_val, dropout_val, batch_norm)
     down_1 = MaxPooling2D(pool_size=(2, 2), strides=2)(conv_1)
-    conv_2 = double_conv_layer(
-        down_1, Nc, 2 * filters, l2_val, dropout_val, batch_norm
-    )
+    conv_2 = double_conv_layer(down_1, Nc, 2 * filters, l2_val, dropout_val, batch_norm)
     down_2 = MaxPooling2D(pool_size=(2, 2), strides=2)(conv_2)
 
-    conv_3 = double_conv_layer(
-        down_2, Nc, 4 * filters, l2_val, dropout_val, batch_norm
-    )
+    conv_3 = double_conv_layer(down_2, Nc, 4 * filters, l2_val, dropout_val, batch_norm)
     down_3 = MaxPooling2D(pool_size=(2, 2), strides=2)(conv_3)
 
-    conv_4 = double_conv_layer(
-        down_3, Nc, 8 * filters, l2_val, dropout_val, batch_norm
-    )
+    conv_4 = double_conv_layer(down_3, Nc, 8 * filters, l2_val, dropout_val, batch_norm)
     down_4 = MaxPooling2D(pool_size=(2, 2), strides=2)(conv_4)
 
     conv_5 = double_conv_layer(
@@ -585,9 +592,7 @@ def createUNetModel_My(input_shape, Nc, filters, out_size, l2_val, dropout_val, 
         kernel_regularizer=l2(l2_val),
     )(up_4)
     concat_4 = concatenate([conv_1, conv_91], axis=axis)
-    conv_9 = double_conv_layer(
-        concat_4, Nc, filters, l2_val, dropout_val, batch_norm
-    )
+    conv_9 = double_conv_layer(concat_4, Nc, filters, l2_val, dropout_val, batch_norm)
 
     if out_size == 1:
         conv_10 = Conv2D(1, (1, 1), padding="same", kernel_regularizer=l2(l2_val))(
@@ -600,6 +605,4 @@ def createUNetModel_My(input_shape, Nc, filters, out_size, l2_val, dropout_val, 
         )(conv_9)
         conv_10 = Activation("softmax")(conv_10)
 
-    model = Model(inputs, conv_10)
-
-    return model
+    return Model(inputs, conv_10)

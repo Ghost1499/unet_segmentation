@@ -2,8 +2,7 @@ import numpy as np
 from keras import backend as K
 import tensorflow as tf
 
-from utils import gather_channels, round_if_needed
-
+from utils.model_utils import gather_channels, round_if_needed
 
 
 def F1(y_true, y_pred):
