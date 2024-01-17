@@ -219,3 +219,4 @@ cython_debug/
 .trunk/configs/.isort.cfg
 .trunk/configs/ruff.toml
 .vscode/settings.json
+src/test.py

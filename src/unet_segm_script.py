@@ -134,32 +134,6 @@ def save_model(model_name):
     )
 
 
-# def test_load_images_masks():
-#     def load_images_masks(image_path, mask_path):
-#         image = tf.io.read_file(image_path)
-#         image = tf.io.decode_jpeg(image, channels=3)
-#         image = tf.image.resize(image, model_config.TARGET_SHAPE[0:2])
-#         image = tf.image.convert_image_dtype(image, dtype=tf.dtypes.float32)
-
-#         mask = tf.io.read_file(mask_path)
-#         mask = tf.io.decode_image(mask, channels=3, expand_animations=False)
-#         mask = tf.image.rgb_to_grayscale(mask)
-#         mask = tf.image.resize(mask, model_config.TARGET_SHAPE[0:2])
-#         mask = tf.image.convert_image_dtype(mask, dtype=tf.dtypes.uint8)
-
-#         # Ground truth labels are 1, 2, 3. Subtract one to make them 0, 1, 2:
-#         return image, mask
-
-#     image, mask = load_images_masks(
-#         str(Path(r"C:\CSF\programs\Segmentation_cont\data\datasets\carvana\test\0cdf5b5d0ce1_03.jpg")),
-#         str(Path(r"C:\CSF\programs\Segmentation_cont\data\datasets\carvana\test_masks\0cdf5b5d0ce1_03_mask.gif"))
-#     )
-#     imshow(image)
-#     show()
-#     imshow(mask)
-#     show()
-
-
 def train_model(model_name):
     with open(io_config.MODEL_SAVE_DIR / f"{model_name}_architecture.json") as f:
         json_model = f.read()
@@ -184,15 +158,18 @@ def train_model(model_name):
             image = tf.io.read_file(image_path)
             image = tf.io.decode_jpeg(image, channels=3)  # type: ignore
             image = tf.image.resize(image, model_config.TARGET_SHAPE[0:2])
-            image = tf.image.convert_image_dtype(image, dtype=tf.dtypes.float32)
+            image = image / 255.0
+            # image = tf.image.convert_image_dtype(image, dtype=tf.dtypes.float32)
 
             mask = tf.io.read_file(mask_path)
             mask = tf.io.decode_image(mask, channels=3, expand_animations=False)
             mask = tf.image.rgb_to_grayscale(mask)
-            mask = tf.image.resize(mask, model_config.TARGET_SHAPE[0:2])
+            mask = tf.image.resize(
+                mask, model_config.TARGET_SHAPE[0:2], method="nearest"
+            )
             mask = tf.image.convert_image_dtype(mask, dtype=tf.dtypes.uint8)
+            mask = mask / 255
 
-            # Ground truth labels are 1, 2, 3. Subtract one to make them 0, 1, 2:
             return image, mask
 
         ds = (
@@ -200,7 +177,8 @@ def train_model(model_name):
             # .shuffle(
             #     ds_prepare_config.DS_SHUFFLE_BUFF_SIZE, ds_prepare_config.RANDOM_STATE
             # )
-            .batch(ds_prepare_config.BATCH_SIZE)
+            .batch(ds_prepare_config.BATCH_SIZE, num_parallel_calls=tf.data.AUTOTUNE)
+            .prefetch(tf.data.AUTOTUNE)
         )
 
         ds_store[name] = ds
