@@ -514,7 +514,7 @@ def createUNetModel_My_All(
 
 def createUNetModel_My(
     input_shape, Nc, filters, out_size, l2_val, dropout_val, batch_norm
-) -> Functional | Any:
+):
     # Здесь используется функциональная модель API для нелинейных взаимодействия межуд слоями
     # Разница заключается в том, что входной слой для последовательной модели создается и применяется неявно
     # (и поэтому не будет доступен через атрибут .layers ),
