@@ -9,7 +9,6 @@ from sklearn.model_selection import train_test_split
 
 from configs import ds_prepare_config, io_config, model_config
 from models import createUNetModel_My
-from unet_segm_script import RNG
 
 from tqdm import tqdm
 
@@ -72,7 +71,7 @@ def save_dataset_npy(dataset_name):
 
     idx = np.arange(images_number)
     train_idx, test_idx = train_test_split(
-        idx, test_size=ds_prepare_config.TEST_SIZE, random_state=RNG, shuffle=True
+        idx, test_size=ds_prepare_config.TEST_SIZE, random_state=ds_prepare_config.RANDOM_STATE, shuffle=True
     )
     train_images = images[train_idx]
     test_images = images[test_idx]
@@ -90,7 +89,7 @@ def save_dataset_npy(dataset_name):
 
 def save_model(model_name):
     # image_shape = get_images_shapes(io_config.TRAIN_IMAGES_DIR)
-    model: Model = createUNetModel_My(
+    model = createUNetModel_My(
         model_config.TARGET_SHAPE,
         model_config.NUMBER_CONVS,
         model_config.CONV_FILTERS,
