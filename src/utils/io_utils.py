@@ -34,7 +34,7 @@ def move_samples(take_rate, images_dir, masks_dir) -> None:
 
     ds = list(zip(image_paths, mask_paths, strict=True))
     taken_count = int(take_rate * len(ds))
-    RNG.shuffle(ds)  # type: ignore
+    ds_prepare_config.RNG.shuffle(ds)  # type: ignore
     taken_ds = ds[:taken_count]
 
     def move_taken_element(image_path: Path, mask_path: Path):
