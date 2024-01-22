@@ -121,12 +121,15 @@ def save_model(model_name):
     )
 
 
-def get_sample_paths(images_folder: Path, masks_folder: Path, shuffle: bool):
-    image_paths = [str(path) for path in paths_from_dir(images_folder)]
-    mask_paths = [str(path) for path in paths_from_dir(masks_folder)]
+def get_sample_paths(
+    images_folder: Path, masks_folder: Path, shuffle: bool, random_state
+):
+    image_paths = [str(path) for path in sorted(paths_from_dir(images_folder))]
+    mask_paths = [str(path) for path in sorted(paths_from_dir(masks_folder))]
 
     if shuffle:
         paths = list(zip(image_paths, mask_paths, strict=True))
-        ds_prepare_config.RNG.shuffle(paths)  # type: ignore
+        rng = np.random.default_rng(random_state)
+        rng.shuffle(paths)  # type: ignore
         image_paths, mask_paths = tuple(list(el) for el in zip(*paths))
     return image_paths, mask_paths
