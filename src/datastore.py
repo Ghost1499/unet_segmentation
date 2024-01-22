@@ -1,21 +1,23 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Callable
+from matplotlib.pyplot import imshow, show, figure
 
 import tensorflow as tf
 import numpy.typing as npt
+from load_samples import load_image, load_mask
 
 from utils.io_utils import get_sample_paths
-from configs import ds_prepare_config
+from configs import ds_prepare_config, io_config
 
 
 class Datastore(ABC):
     @property
-    def dataset(self):
+    def dataset(self) -> tf.data.Dataset:
         return self._dataset
 
     @dataset.setter
-    def dataset(self, value):
+    def dataset(self, value) -> None:
         self._dataset = value
 
     def __init__(self, images_dir: Path, masks_dir: Path, save_dir: Path) -> None:
@@ -62,7 +64,8 @@ class PreshuffleDatastore(Datastore):
             self.__random_state,
         )
         ds = tf.data.Dataset.zip(
-            self.__load_images(image_paths), self.__load_masks(mask_paths)
+            self.__load_elements(image_paths, self.__load_image_fnc),
+            self.__load_elements(mask_paths, self.__load_mask_fnc),
         )
         if self._shuffle:
             ds = ds.shuffle(ds_prepare_config.DS_SHUFFLE_BUFF_SIZE, self.__random_state)
@@ -72,8 +75,30 @@ class PreshuffleDatastore(Datastore):
         ).prefetch(tf.data.AUTOTUNE)
         return ds
 
-    def __load_images(self, paths_ds):
-        return paths_ds.map(self.__load_image_fnc, num_parallel_calls=tf.data.AUTOTUNE)
+    def __load_elements(self, paths, load_fnc):
+        return tf.data.Dataset.from_tensor_slices(paths).map(
+            load_fnc, num_parallel_calls=tf.data.AUTOTUNE
+        )
 
-    def __load_masks(self, paths_ds):
-        return paths_ds.map(self.__load_mask_fnc, num_parallel_calls=tf.data.AUTOTUNE)
+
+def test():
+    datastore = PreshuffleDatastore(
+        io_config.TEST_IMAGES_DIR,
+        io_config.TEST_MASKS_DIR,
+        Path(),
+        load_image,
+        load_mask,
+        random_state=ds_prepare_config.RANDOM_STATE,
+    )
+    ds = datastore.dataset
+    image, mask = next(ds.unbatch().take(1).as_numpy_iterator())
+    figure()
+    imshow(image)
+    show()
+    figure()
+    imshow(mask)
+    show()
+
+
+if __name__ == "__main__":
+    test()
