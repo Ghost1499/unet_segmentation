@@ -42,7 +42,7 @@ def load_mask(path: str) -> Any:
     return mask
 
 
-def test():
+def __test():
     image = load_image(
         r"C:\CSF\programs\Segmentation_cont\data\datasets\carvana\train\0cdf5b5d0ce1_01.jpg"
     ).numpy()
@@ -56,4 +56,4 @@ def test():
 
 
 if __name__ == "__main__":
-    test()
+    __test()

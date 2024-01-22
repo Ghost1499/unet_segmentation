@@ -85,15 +85,43 @@ class PreshuffleDatastore(Datastore):
         )
 
 
-def test():
-    datastore = PreshuffleDatastore(
+def make_train_datastore() -> PreshuffleDatastore:
+    return PreshuffleDatastore(
+        io_config.TRAIN_IMAGES_DIR,
+        io_config.TRAIN_MASKS_DIR,
+        Path(),
+        load_image,
+        load_mask,
+        random_state=ds_prepare_config.RANDOM_STATE,
+    )
+
+
+def make_val_datastore() -> PreshuffleDatastore:
+    return PreshuffleDatastore(
+        io_config.VAL_IMAGES_DIR,
+        io_config.VAL_MASKS_DIR,
+        Path(),
+        load_image,
+        load_mask,
+        random_state=ds_prepare_config.RANDOM_STATE,
+        shuffle=False,
+    )
+
+
+def make_test_datastore():
+    return PreshuffleDatastore(
         io_config.TEST_IMAGES_DIR,
         io_config.TEST_MASKS_DIR,
         Path(),
         load_image,
         load_mask,
         random_state=ds_prepare_config.RANDOM_STATE,
+        shuffle=False,
     )
+
+
+def __test():
+    datastore = make_test_datastore()
     ds = datastore.dataset
     image, mask = next(ds.unbatch().take(1).as_numpy_iterator())
     figure()
@@ -105,4 +133,4 @@ def test():
 
 
 if __name__ == "__main__":
-    test()
+    __test()
