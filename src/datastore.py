@@ -66,7 +66,7 @@ class PreshuffleDatastore(Datastore):
         ds = tf.data.Dataset.zip(
             self.__load_elements(image_paths, self.__load_image_fnc),
             self.__load_elements(mask_paths, self.__load_mask_fnc),
-        )
+        ).cache()
         if self._shuffle:
             ds = ds.shuffle(
                 ds_prepare_config.DS_SHUFFLE_BUFF_SIZE,
