@@ -133,3 +133,7 @@ def get_sample_paths(
         rng.shuffle(paths)  # type: ignore
         image_paths, mask_paths = tuple(list(el) for el in zip(*paths))
     return image_paths, mask_paths
+
+
+def get_image_shapes(dir: Path):
+    return imread(next(dir.iterdir())).shape
