@@ -68,7 +68,11 @@ class PreshuffleDatastore(Datastore):
             self.__load_elements(mask_paths, self.__load_mask_fnc),
         )
         if self._shuffle:
-            ds = ds.shuffle(ds_prepare_config.DS_SHUFFLE_BUFF_SIZE, self.__random_state)
+            ds = ds.shuffle(
+                ds_prepare_config.DS_SHUFFLE_BUFF_SIZE,
+                self.__random_state,
+                reshuffle_each_iteration=True,
+            )
 
         ds = ds.batch(
             ds_prepare_config.BATCH_SIZE, num_parallel_calls=tf.data.AUTOTUNE
