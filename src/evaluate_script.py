@@ -1,21 +1,19 @@
 from matplotlib import pyplot as plt
 import numpy as np
-from skimage.io import imread, imshow, show
+from skimage.io import imshow, show
 import keras
-
-from models import load_model, load_model_arch
-from load_ds import get_dataset, get_test_ds
+from datastore import make_test_datastore
 
 
 def main(model_name):
     # model = load_model(model_name)
-    test_ds = get_test_ds()
+    test_ds = make_test_datastore().dataset
 
     # preds = model.predict(test_ds)
     preds = np.load("data/predictions.npy")
     preds = (preds > 0.5).astype("uint8")
     images, masks = tuple(
-        [list(el) for el in zip(*test_ds.unbatch().as_numpy_iterator())]
+        [list(el) for el in zip(*test_ds.unbatch().as_numpy_iterator())]  # type: ignore
     )
     masks = np.array(masks)
     masks = (masks > 0.5).astype("uint8")

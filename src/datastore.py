@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from pathlib import Path
 from typing import Callable
 from matplotlib.pyplot import imshow, show, figure
@@ -123,7 +123,7 @@ def make_test_datastore():
 def __test():
     datastore = make_test_datastore()
     ds = datastore.dataset
-    image, mask = next(ds.unbatch().take(1).as_numpy_iterator())
+    image, mask = next(ds.unbatch().take(1).as_numpy_iterator())  # type: ignore
     figure()
     imshow(image)
     show()
