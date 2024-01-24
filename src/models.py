@@ -17,6 +17,8 @@ from keras.models import Model  # ,MaxPooling2D, UpSampling2D, concatenate
 from keras.regularizers import l2
 import tensorflow as tf
 
+from configs import io_config
+
 
 def double_conv_layer(x, Nc, filters, l2_val, dropout_val, batch_norm):
     if K.image_data_format() == "channels_last":  # определение используемого бэкенда
@@ -606,3 +608,17 @@ def createUNetModel_My(
         conv_10 = Activation("softmax")(conv_10)
 
     return Model(inputs, conv_10)
+
+
+def load_model_arch(model_name):
+    with open(io_config.MODEL_SAVE_DIR / f"{model_name}_architecture.json") as f:
+        return f.read()
+
+
+def load_model(model_name):
+    return keras.saving.load_model(
+        io_config.MODEL_SAVE_DIR / f"{model_name}.keras",
+        custom_objects=None,
+        compile=True,
+        safe_mode=True,
+    )

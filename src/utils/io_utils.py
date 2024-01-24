@@ -34,7 +34,7 @@ def move_samples(take_rate, images_dir, masks_dir) -> None:
 
     ds = list(zip(image_paths, mask_paths, strict=True))
     taken_count = int(take_rate * len(ds))
-    RNG.shuffle(ds)  # type: ignore
+    ds_prepare_config.RNG.shuffle(ds)  # type: ignore
     taken_ds = ds[:taken_count]
 
     def move_taken_element(image_path: Path, mask_path: Path):
@@ -71,7 +71,10 @@ def save_dataset_npy(dataset_name):
 
     idx = np.arange(images_number)
     train_idx, test_idx = train_test_split(
-        idx, test_size=ds_prepare_config.TEST_SIZE, random_state=ds_prepare_config.RANDOM_STATE, shuffle=True
+        idx,
+        test_size=ds_prepare_config.TEST_SIZE,
+        random_state=ds_prepare_config.RNG,
+        shuffle=True,
     )
     train_images = images[train_idx]
     test_images = images[test_idx]
@@ -116,3 +119,21 @@ def save_model(model_name):
         show_layer_names=True,
         show_layer_activations=True,
     )
+
+
+def get_sample_paths(
+    images_folder: Path, masks_folder: Path, shuffle: bool, random_state
+):
+    image_paths = [str(path) for path in sorted(paths_from_dir(images_folder))]
+    mask_paths = [str(path) for path in sorted(paths_from_dir(masks_folder))]
+
+    if shuffle:
+        paths = list(zip(image_paths, mask_paths, strict=True))
+        rng = np.random.default_rng(random_state)
+        rng.shuffle(paths)  # type: ignore
+        image_paths, mask_paths = tuple(list(el) for el in zip(*paths))
+    return image_paths, mask_paths
+
+
+def get_image_shapes(dir: Path):
+    return imread(next(dir.iterdir())).shape

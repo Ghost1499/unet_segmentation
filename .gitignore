@@ -49,10 +49,6 @@ dist/**
 package.nls.*.json
 l10n/
 
-# project ignors
-data/*
-results/*
-
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -219,4 +215,8 @@ cython_debug/
 .trunk/configs/.isort.cfg
 .trunk/configs/ruff.toml
 .vscode/settings.json
+
+# project ignors
+data/*
+results/*
 src/test.py

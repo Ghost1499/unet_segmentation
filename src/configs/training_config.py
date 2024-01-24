@@ -14,4 +14,4 @@ COMPILE_CONFIGS = defaultdict(
         2: {"loss": "binary_crossentropy", "metrics": ["accuracy"]},
     },
 )
-DEBUG_MODEL = True
+DEBUG_MODEL = False
