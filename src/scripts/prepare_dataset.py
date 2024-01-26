@@ -1,6 +1,6 @@
 import fnmatch
 from pathlib import Path
-from typing import Self
+from typing import Callable, Self
 
 from matplotlib.image import imread, imsave
 from matplotlib.pyplot import imshow, show
@@ -42,14 +42,16 @@ def resizing_process(img_load_path, img_save_path) -> None:
     imsave(img_save_path, resized)
 
 
-def make_resized(load_folder: Path, save_folder: Path) -> None:
+def process_images(
+    load_folder: Path, save_folder: Path, process_fnc: Callable[[Path, Path], None]
+) -> None:
     load_folder = ImagesDir(load_folder)
     load_paths_gen = load_folder.rglob("*")
     for load_path in tqdm(load_paths_gen, desc="Making resized"):
         save_path = save_folder / load_path.relative_to(load_folder)
         if not save_path.parent.is_dir():
             save_path.parent.mkdir(parents=True)
-        resizing_process(load_path, save_path)
+        process_fnc(load_path, save_path)
 
 
 def test():
@@ -79,7 +81,7 @@ def test_cont_mask():
 def main():
     load_folder = io_config.CARVANA_DIR
     save_folder = load_folder.with_name("_".join([load_folder.name, "mini"]))
-    make_resized(load_folder, save_folder)
+    process_images(load_folder, save_folder)
 
 
 if __name__ == "__main__":
