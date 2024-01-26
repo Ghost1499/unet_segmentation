@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 import fnmatch
 from pathlib import Path
 from typing import Callable, Self
@@ -47,11 +48,12 @@ def process_images(
 ) -> None:
     load_folder = ImagesDir(load_folder)
     load_paths_gen = load_folder.rglob("*")
-    for load_path in tqdm(load_paths_gen, desc="Making resized"):
-        save_path = save_folder / load_path.relative_to(load_folder)
-        if not save_path.parent.is_dir():
-            save_path.parent.mkdir(parents=True)
-        process_fnc(load_path, save_path)
+    with ThreadPoolExecutor() as executor:
+        for load_path in tqdm(load_paths_gen, desc="Making resized"):
+            save_path = save_folder / load_path.relative_to(load_folder)
+            if not save_path.parent.is_dir():
+                save_path.parent.mkdir(parents=True)
+            executor.submit(process_fnc, load_path, save_path)
 
 
 def test():
@@ -81,7 +83,7 @@ def test_cont_mask():
 def main():
     load_folder = io_config.CARVANA_DIR
     save_folder = load_folder.with_name("_".join([load_folder.name, "mini"]))
-    process_images(load_folder, save_folder)
+    # process_images(load_folder, save_folder)
 
 
 if __name__ == "__main__":
