@@ -2,11 +2,8 @@ from collections.abc import Generator
 from pathlib import Path
 
 
-class ImagesDir(Path):
+class ImagesDir(type(Path())):
     IMAGES_EXTS = [".png", ".jpg", ".jpeg", ".gif"]
-
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
 
     @classmethod
     def _is_image(cls, path: Path):
