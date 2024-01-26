@@ -17,6 +17,7 @@ from src.configs import ds_prepare_config, io_config
 
 KERNEL_RADIUS = 3
 OP_KERNEL = disk(KERNEL_RADIUS, dtype=np.bool_)
+CONT_MASKS_SAVE_EXT = ".jpg"
 
 
 def create_contours_mask(mask: npt.NDArray[np.uint8]):
@@ -27,13 +28,21 @@ def create_contours_mask(mask: npt.NDArray[np.uint8]):
     return contours_mask.astype(np.uint8) * 255
 
 
-def resizing_process(img_load_path, img_save_path):
+def cont_mask_process(mask_load_path: Path, mask_save_path: Path) -> None:
+    mask = imread(mask_load_path)
+    mask = mask[..., 0]
+    mask = np.where(mask >= 256 / 2, 255, 0)
+    contours_mask = create_contours_mask(mask)
+    imsave(mask_save_path.with_suffix(CONT_MASKS_SAVE_EXT), contours_mask)
+
+
+def resizing_process(img_load_path, img_save_path) -> None:
     img = imread(img_load_path)
     resized = resize(img, ds_prepare_config.TARGET_SIZE)
     imsave(img_save_path, resized)
 
 
-def make_resized(load_folder: Path, save_folder: Path):
+def make_resized(load_folder: Path, save_folder: Path) -> None:
     load_folder = ImagesDir(load_folder)
     load_paths_gen = load_folder.rglob("*")
     for load_path in tqdm(load_paths_gen, desc="Making resized"):
