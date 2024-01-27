@@ -15,7 +15,7 @@ CHECKPOINTS_SAVE_DIR = MODEL_SAVE_DIR / "checkpoints"
 TENSORBOARD_LOG_DIR = Path(r"data/logs")
 
 __splits = ("all", "train", "val", "test")
-__mask_types = (None, "mask", "contours")
+__mask_types = (None, "mask", "contour")
 __name_sep = "_"
 
 
@@ -32,3 +32,18 @@ def get_samples_dir(split: str = "all", is_mini=False, mask=None):
             folder = split
         res_dir = res_dir / folder
     return res_dir
+
+
+def test():
+    print(
+        get_samples_dir(),
+        get_samples_dir(is_mini=True),
+        get_samples_dir("train"),
+        get_samples_dir("val", mask="mask"),
+        get_samples_dir("test", is_mini=True, mask="contour"),
+        sep="\n",
+    )
+
+
+if __name__ == "__main__":
+    test()
