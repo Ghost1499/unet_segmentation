@@ -38,9 +38,9 @@ def test():
     print(
         get_samples_dir(),
         get_samples_dir(is_mini=True),
-        get_samples_dir("train"),
-        get_samples_dir("val", mask="mask"),
-        get_samples_dir("test", is_mini=True, mask="contour"),
+        get_samples_dir(split="train"),
+        get_samples_dir(split="val", mask="mask"),
+        get_samples_dir(is_mini=True, split="test", mask="contour"),
         sep="\n",
     )
 
