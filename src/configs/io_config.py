@@ -15,11 +15,11 @@ CHECKPOINTS_SAVE_DIR = MODEL_SAVE_DIR / "checkpoints"
 TENSORBOARD_LOG_DIR = Path(r"data/logs")
 
 __splits = ("all", "train", "val", "test")
-__mask_types = (None, "mask", "contour")
+__mask_types = (None, "masks", "contours")
 __name_sep = "_"
 
 
-def get_samples_dir(split: str = "all", is_mini=False, mask=None):
+def get_samples_dir(is_mini=False, split: str = "all", mask=None):
     if split not in __splits:
         raise ValueError(split)
     if mask not in __mask_types:

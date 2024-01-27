@@ -1,7 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 import fnmatch
 from pathlib import Path
-from typing import Callable, Self
+from typing import Callable, Optional, Self
 
 from matplotlib.image import imread, imsave
 from matplotlib.pyplot import imshow, show
@@ -47,12 +47,15 @@ def process_images(
     load_folder: Path,
     save_folder: Path,
     process_fnc: Callable[[Path, Path], None],
+    load_pattern: Optional[str] = None,
     rewrite: bool = True,
 ) -> None:
     load_folder = ImagesDir(load_folder)
-    load_paths_gen = load_folder.rglob("*")
+    if not load_pattern:
+        load_pattern = "*"
+    load_paths_gen = load_folder.rglob(load_pattern)
     with ThreadPoolExecutor() as executor:
-        for load_path in tqdm(load_paths_gen, desc="Making resized"):
+        for load_path in tqdm(load_paths_gen, desc="Image processing"):
             save_path = save_folder / load_path.relative_to(load_folder)
             if not save_path.parent.is_dir():
                 save_path.parent.mkdir(parents=True)
@@ -85,13 +88,23 @@ def test_cont_mask():
     imsave("results/0cdf5b5d0ce1_03_mask_mini.png", cont_mask)
 
 
-def main():
-    load_folder = io_config.CARVANA_DIR
-    save_folder = load_folder.with_name("_".join([load_folder.name, "mini"]))
-    process_images(load_folder, save_folder, cont_mask_process)
+def make_carvana_mini():
+    load_folder = io_config.CARVANA_DIR / "train_masks"
+    save_folder = (
+        load_folder.with_name("_".join([load_folder.name, "mini"])) / "train_masks"
+    )
+    process_images(load_folder, save_folder, cont_mask_process, rewrite=False)
+
+
+def make_contours():
+    for split in ["train", "val", "test"]:
+        load_folder = io_config.get_samples_dir(is_mini=True, split=split, mask="masks")
+        save_folder = io_config.get_samples_dir(
+            is_mini=True, split=split, mask="contours"
+        )
+        process_images(load_folder, save_folder, cont_mask_process, rewrite=False)
 
 
 if __name__ == "__main__":
-    # main()
-    test_cont_mask()
+    make_contours()
     # test()
