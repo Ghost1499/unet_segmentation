@@ -17,7 +17,7 @@ from src.ImagesDir import ImagesDir
 from src.configs import ds_prepare_config, io_config
 
 KERNEL_RADIUS = 3
-OP_KERNEL = disk(KERNEL_RADIUS, dtype=np.bool_)
+OP_KERNEL = disk(KERNEL_RADIUS, dtype=np.bool_)  # type: ignore
 CONT_MASKS_SAVE_EXT = ".jpg"
 
 
@@ -44,7 +44,10 @@ def resizing_process(img_load_path, img_save_path) -> None:
 
 
 def process_images(
-    load_folder: Path, save_folder: Path, process_fnc: Callable[[Path, Path], None]
+    load_folder: Path,
+    save_folder: Path,
+    process_fnc: Callable[[Path, Path], None],
+    rewrite: bool = True,
 ) -> None:
     load_folder = ImagesDir(load_folder)
     load_paths_gen = load_folder.rglob("*")
@@ -53,6 +56,8 @@ def process_images(
             save_path = save_folder / load_path.relative_to(load_folder)
             if not save_path.parent.is_dir():
                 save_path.parent.mkdir(parents=True)
+            if save_path.exists() and not rewrite:
+                continue
             executor.submit(process_fnc, load_path, save_path)
 
 
@@ -83,7 +88,7 @@ def test_cont_mask():
 def main():
     load_folder = io_config.CARVANA_DIR
     save_folder = load_folder.with_name("_".join([load_folder.name, "mini"]))
-    # process_images(load_folder, save_folder)
+    process_images(load_folder, save_folder, cont_mask_process)
 
 
 if __name__ == "__main__":
