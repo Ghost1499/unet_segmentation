@@ -1,6 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 import fnmatch
 from pathlib import Path
+from token import OP
 from typing import Callable, Optional, Self
 
 from matplotlib.image import imread, imsave
@@ -9,7 +10,12 @@ import numpy as np
 import numpy.typing as npt
 
 from skimage.transform import resize
-from skimage.morphology import binary_dilation, binary_erosion
+from skimage.morphology import (
+    binary_dilation,
+    binary_erosion,
+    binary_closing,
+    binary_opening,
+)
 from skimage.morphology.footprints import disk
 from tqdm import tqdm
 
@@ -23,8 +29,8 @@ CONT_MASKS_SAVE_EXT = ".jpg"
 
 def create_contours_mask(mask: npt.NDArray[np.uint8]):
     mask = mask.astype(np.bool_)
-    dilated = binary_dilation(mask, OP_KERNEL)
-    eroded = binary_erosion(mask, OP_KERNEL)
+    dilated = binary_dilation(binary_opening(mask, OP_KERNEL), OP_KERNEL)
+    eroded = binary_erosion(binary_closing(mask, OP_KERNEL), OP_KERNEL)
     contours_mask = dilated & ~eroded
     return contours_mask.astype(np.uint8) * 255
 
@@ -75,17 +81,16 @@ def test():
 
 
 def test_cont_mask():
-    mask = imread(
-        Path(
-            r"C:\CSF\programs\Segmentation_cont\data\datasets\carvana_mini\test_masks\0cdf5b5d0ce1_03_mask.gif"
-        )
+    image_path = Path(
+        r"C:\CSF\programs\Segmentation_cont\data\datasets\carvana_mini\test_masks\0de66245f268_13_mask.gif"
     )
+    mask = imread(image_path)
     mask = mask[..., 0]
     mask = np.where(mask >= 256 / 2, 255, 0)
     cont_mask = create_contours_mask(mask)
     imshow(cont_mask)
     show()
-    imsave("results/0cdf5b5d0ce1_03_mask_mini.png", cont_mask)
+    imsave(Path("results") / (image_path.stem + ".png"), cont_mask)
 
 
 def make_carvana_mini():
@@ -93,7 +98,7 @@ def make_carvana_mini():
     save_folder = (
         load_folder.with_name("_".join([load_folder.name, "mini"])) / "train_masks"
     )
-    process_images(load_folder, save_folder, cont_mask_process, rewrite=False)
+    process_images(load_folder, save_folder, cont_mask_process, rewrite=True)
 
 
 def make_contours():
@@ -102,9 +107,9 @@ def make_contours():
         save_folder = io_config.get_samples_dir(
             is_mini=True, split=split, mask="contours"
         )
-        process_images(load_folder, save_folder, cont_mask_process, rewrite=False)
+        process_images(load_folder, save_folder, cont_mask_process, rewrite=True)
 
 
 if __name__ == "__main__":
     make_contours()
-    # test()
+    # test_cont_mask()
