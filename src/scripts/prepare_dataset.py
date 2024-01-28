@@ -43,9 +43,22 @@ def cont_mask_process(mask_load_path: Path, mask_save_path: Path) -> None:
     imsave(mask_save_path.with_suffix(CONT_MASKS_SAVE_EXT), contours_mask)
 
 
+def resize_img(img, is_mask):
+    if is_mask:
+        order = 0
+        anti_aliasing = False
+    else:
+        order = 1
+        anti_aliasing = True
+    return resize(
+        img, ds_prepare_config.TARGET_SIZE, order=order, anti_aliasing=anti_aliasing
+    )
+
+
 def resizing_process(img_load_path, img_save_path) -> None:
     img = imread(img_load_path)
-    resized = resize(img, ds_prepare_config.TARGET_SIZE)
+    is_mask = "mask" in str(img_load_path.parent)
+    resized = resize_img(img, is_mask)
     imsave(img_save_path, resized)
 
 
@@ -70,7 +83,7 @@ def process_images(
             executor.submit(process_fnc, load_path, save_path)
 
 
-def test():
+def test_resize():
     img_load_path = Path(
         r"C:\CSF\programs\Segmentation_cont\data\datasets\carvana\test\0cdf5b5d0ce1_03.jpg"
     )
@@ -93,23 +106,23 @@ def test_cont_mask():
     imsave(Path("results") / (image_path.stem + ".png"), cont_mask)
 
 
-def make_carvana_mini():
-    load_folder = io_config.CARVANA_DIR / "train_masks"
-    save_folder = (
-        load_folder.with_name("_".join([load_folder.name, "mini"])) / "train_masks"
-    )
-    process_images(load_folder, save_folder, cont_mask_process, rewrite=True)
+def make_carvana_mini(rewrite):
+    load_folder = io_config.CARVANA_DIR
+    save_folder = io_config.CARVANA_MINI_DIR
+    process_images(load_folder, save_folder, resizing_process, rewrite=rewrite)
 
 
-def make_contours():
+def make_contours(rewrite):
     for split in ["train", "val", "test"]:
         load_folder = io_config.get_samples_dir(is_mini=True, split=split, mask="masks")
         save_folder = io_config.get_samples_dir(
-            is_mini=True, split=split, mask="contours"
+            is_mini=True, split=split, mask="contours_insensitive"
         )
-        process_images(load_folder, save_folder, cont_mask_process, rewrite=True)
+        process_images(load_folder, save_folder, cont_mask_process, rewrite=rewrite)
 
 
 if __name__ == "__main__":
-    make_contours()
+    # test_resize()
+    # make_carvana_mini(True)
+    make_contours(True)
     # test_cont_mask()
