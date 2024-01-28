@@ -24,6 +24,7 @@ def load_resize_image(path: str) -> Any:
 def load_image(path: str) -> Any:
     image = tf.io.read_file(path)
     image = tf.io.decode_image(image, channels=3, dtype=tf.dtypes.float32)  # type: ignore
+    image.set_shape([*ds_prepare_config.TARGET_SIZE, 3])
     return image
 
 
@@ -47,7 +48,8 @@ def load_mask(path: str) -> Any:
     mask = tf.io.decode_image(
         mask, channels=3, expand_animations=False, dtype=tf.dtypes.float32
     )
-    mask = tf.expand_dims(tf.unstack(mask, axis=-1)[0], axis=-1)
+    mask = tf.expand_dims(tf.unstack(mask, num=3, axis=-1)[0], axis=-1)
+    mask.set_shape([*ds_prepare_config.TARGET_SIZE, 1])
     return mask
 
 

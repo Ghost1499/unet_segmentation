@@ -114,7 +114,7 @@ def make_test_datastore(is_mini, mask_type: str) -> PreshuffleDatastore:
 
 
 def __test():
-    datastore = make_test_datastore(is_mini=True, mask_type="contours_insensitive")
+    datastore = make_train_datastore(is_mini=True, mask_type="contours_insensitive")
     ds = datastore.dataset
     image, mask = next(ds.unbatch().take(1).as_numpy_iterator())  # type: ignore
     figure()
