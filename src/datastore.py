@@ -1,11 +1,11 @@
 from abc import ABC
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable
 from matplotlib.pyplot import imshow, show, figure
 
 import tensorflow as tf
 import numpy.typing as npt
-from load_samples import load_image, load_mask
+from load_samples import load_image, load_resize_image, load_mask, load_resize_mask
 
 from utils.io_utils import get_sample_paths
 from configs import ds_prepare_config, io_config
@@ -20,10 +20,10 @@ class Datastore(ABC):
     def dataset(self, value) -> None:
         self._dataset = value
 
-    def __init__(self, images_dir: Path, masks_dir: Path, save_dir: Path) -> None:
+    def __init__(self, images_dir: Path, masks_dir: Path) -> None:
         self._images_dir = images_dir
         self._masks_dir = masks_dir
-        self._save_dir = save_dir
+        # self._save_dir = save_dir
         # self.dataset = tf.data.Dataset.from
 
     # @abstractmethod
@@ -40,14 +40,13 @@ class PreshuffleDatastore(Datastore):
         self,
         images_dir: Path,
         masks_dir: Path,
-        save_dir: Path,
         load_image_fnc: Callable[[str], npt.NDArray],
         load_mask_fnc: Callable[[str], npt.NDArray],
         preloading_shuffle: bool = True,
         shuffle: bool = True,
         random_state=None,
     ) -> None:
-        super().__init__(images_dir, masks_dir, save_dir)
+        super().__init__(images_dir, masks_dir)
         self.__load_image_fnc = load_image_fnc
         self.__load_mask_fnc = load_mask_fnc
         self._preloading_shuffle = preloading_shuffle
@@ -85,43 +84,37 @@ class PreshuffleDatastore(Datastore):
         )
 
 
-def make_train_datastore() -> PreshuffleDatastore:
+def make_datastore(split, is_mini, mask_type) -> PreshuffleDatastore:
+    images_dir = io_config.get_samples_dir(is_mini, split=split, mask=None)
+    masks_dir = io_config.get_samples_dir(is_mini, split=split, mask=mask_type)
+    load_img_fnc, load_mask_fnc = (
+        (load_image, load_mask) if is_mini else (load_resize_image, load_resize_mask)
+    )
+    shuffle = split == "train"
     return PreshuffleDatastore(
-        io_config.TRAIN_IMAGES_DIR,
-        io_config.TRAIN_MASKS_DIR,
-        Path(),
-        load_image,
-        load_mask,
+        images_dir,
+        masks_dir,
+        load_img_fnc,
+        load_mask_fnc,
         random_state=ds_prepare_config.RANDOM_STATE,
+        shuffle=shuffle,
     )
 
 
-def make_val_datastore() -> PreshuffleDatastore:
-    return PreshuffleDatastore(
-        io_config.VAL_IMAGES_DIR,
-        io_config.VAL_MASKS_DIR,
-        Path(),
-        load_image,
-        load_mask,
-        random_state=ds_prepare_config.RANDOM_STATE,
-        shuffle=False,
-    )
+def make_train_datastore(is_mini, mask_type: str) -> PreshuffleDatastore:
+    return make_datastore("train", is_mini, mask_type)
 
 
-def make_test_datastore():
-    return PreshuffleDatastore(
-        io_config.TEST_IMAGES_DIR,
-        io_config.TEST_MASKS_DIR,
-        Path(),
-        load_image,
-        load_mask,
-        random_state=ds_prepare_config.RANDOM_STATE,
-        shuffle=False,
-    )
+def make_val_datastore(is_mini, mask_type: str) -> PreshuffleDatastore:
+    return make_datastore("val", is_mini, mask_type)
+
+
+def make_test_datastore(is_mini, mask_type: str) -> PreshuffleDatastore:
+    return make_datastore("test", is_mini, mask_type)
 
 
 def __test():
-    datastore = make_test_datastore()
+    datastore = make_test_datastore(is_mini=True, mask_type="contours_insensitive")
     ds = datastore.dataset
     image, mask = next(ds.unbatch().take(1).as_numpy_iterator())  # type: ignore
     figure()

@@ -15,7 +15,7 @@ CHECKPOINTS_SAVE_DIR = MODEL_SAVE_DIR / "checkpoints"
 TENSORBOARD_LOG_DIR = Path(r"data/logs")
 
 __splits = ("all", "train", "val", "test")
-__mask_types = (None, "masks", "contours")
+__mask_types = (None, "masks", "contours", "contours_insensitive")
 __name_sep = "_"
 
 
