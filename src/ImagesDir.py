@@ -17,3 +17,6 @@ class ImagesDir(type(Path())):
 
     def iterdir(self) -> Generator[Path, None, None]:
         return (path for path in super().iterdir() if self._is_image(path))
+
+    def images_number(self):
+        return len(list(self.iterdir()))
