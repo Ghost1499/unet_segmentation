@@ -42,12 +42,12 @@ class DSPreparer(ABC):
     def prepare(self):
         pass
 
-    # @abstractmethod
-    # def load(self):
-    #     pass
-
     @abstractmethod
     def save(self) -> None:
+        pass
+
+    @abstractmethod
+    def load(self):
         pass
 
 
@@ -113,6 +113,14 @@ class InMemoryDSPreparer(DSPreparer):
 
     def _save_ds(self, save_path):
         np.savez(save_path, X=self.X, y=self.y)
+
+    def load(self) -> None:
+        ds = self._load_ds(self._save_dir / self.__ds_save_name)
+        self._X = ds["X"]
+        self._y = ds["y"]
+
+    def _load_ds(self, load_path):
+        return np.load(load_path)
 
 
 class PreshuffleDatastore(DSPreparer):
