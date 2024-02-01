@@ -1,19 +1,31 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Callable
-from matplotlib.pyplot import imshow, show, figure
+from typing import Any, Callable, Iterable
 
+from matplotlib.pyplot import imread, imshow, show, figure
+import numpy as np
 import tensorflow as tf
 import numpy.typing as npt
-from load_samples import load_image, load_resize_image, load_mask, load_resize_mask
+from skimage.util import img_as_float32
 
-from utils.io_utils import get_sample_paths
+from ImagesDir import ImagesDir
+from load_samples import load_image, load_resize_image, load_mask, load_resize_mask
+from utils.io_utils import get_sample_paths, shuffle_paths
 from configs import ds_prepare_config, io_config
 
 
-class Datastore(ABC):
+def shuffle_sample_paths(
+    image_paths: Iterable[str | Path], mask_paths: Iterable[str | Path], random_state
+) -> tuple[list[str | Path], list[str | Path]]:
+    image_paths_sh, mask_paths_sh = shuffle_paths(
+        image_paths, mask_paths, random_state=random_state
+    )
+    return image_paths_sh, mask_paths_sh
+
+
+class DSPreparer(ABC):
     @property
-    def dataset(self) -> tf.data.Dataset:
+    def dataset(self):
         return self._dataset
 
     @dataset.setter
@@ -21,21 +33,69 @@ class Datastore(ABC):
         self._dataset = value
 
     def __init__(self, images_dir: Path, masks_dir: Path) -> None:
-        self._images_dir = images_dir
-        self._masks_dir = masks_dir
+        self._images_dir = ImagesDir(images_dir)
+        self._masks_dir = ImagesDir(masks_dir)
         # self._save_dir = save_dir
         # self.dataset = tf.data.Dataset.from
+
+    @abstractmethod
+    def prepare(self):
+        pass
 
     # @abstractmethod
     # def load(self):
     #     pass
 
-    # @abstractmethod
-    # def save(self):
-    #     pass
+    @abstractmethod
+    def save(self) -> None:
+        pass
 
 
-class PreshuffleDatastore(Datastore):
+class InMemoryDSPreparer(DSPreparer):
+    __img_load_fun: Callable[[str | Path], npt.NDArray] = imread
+
+    @property
+    def X(self):
+        return self._X
+
+    @property
+    def y(self):
+        return self._y
+
+    def __init__(
+        self, images_dir: Path, masks_dir: Path, random_state: int, shuffle=True
+    ) -> None:
+        super().__init__(images_dir, masks_dir)
+        self._X = np.array([])
+        self._y = np.array([])
+        self._random_state = random_state
+        self._shuffle = shuffle
+
+    def prepare(self):
+        image_paths = sorted(self._images_dir.iterdir())
+        mask_paths = sorted(self._masks_dir.iterdir())
+
+        if self._shuffle:
+            image_paths, mask_paths = shuffle_sample_paths(
+                image_paths, mask_paths, self._random_state
+            )
+
+        images = [self._load_image(p) for p in image_paths]
+        masks = [self._load_mask(p) for p in mask_paths]
+
+        self._X = np.array(images)
+        self._y = np.array(masks)
+
+    @classmethod
+    def _load_image(cls, path) -> npt.NDArray[Any]:
+        return img_as_float32(cls.__img_load_fun(path))
+
+    @classmethod
+    def _load_mask(cls, path):
+        return img_as_float32(cls.__img_load_fun(path)[..., 0])
+
+
+class PreshuffleDatastore(DSPreparer):
     def __init__(
         self,
         images_dir: Path,
