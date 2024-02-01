@@ -1,14 +1,14 @@
 from contextlib import redirect_stdout
 from pathlib import Path
-from typing import Any, Generator, Union
+from typing import Any, Generator, Iterable, Union
 
 from keras.utils import plot_model
 import numpy as np
 from skimage.io import imread
 from sklearn.model_selection import train_test_split
 
-from configs import ds_prepare_config, io_config, model_config
-from models import createUNetModel_My
+# from configs import ds_prepare_config, io_config, model_config
+# from models import createUNetModel_My
 
 from tqdm import tqdm
 
@@ -121,6 +121,20 @@ def save_model(model_name):
     )
 
 
+def shuffle_paths(
+    *paths_secs: Iterable[Path | str | Any], random_state
+) -> tuple[list[Any], ...]:
+    try:
+        zp = zip(*paths_secs, strict=True)
+    except ValueError as err:
+        raise ValueError(err, "Итерируемые объекты имеют неодинаковую длину")
+    paths = list(zp)
+    rng = np.random.default_rng(random_state)
+    rng.shuffle(paths)  # type: ignore
+    shuffled = tuple(list(el) for el in zip(*paths))
+    return shuffled
+
+
 def get_sample_paths(
     images_folder: Path, masks_folder: Path, shuffle: bool, random_state
 ):
@@ -137,3 +151,13 @@ def get_sample_paths(
 
 def get_image_shapes(dir: Path):
     return imread(next(dir.iterdir())).shape
+
+
+def test():
+    print(*shuffle_paths([1, 2, 3], [4, 5, 6], random_state=0))
+    print(*shuffle_paths([], [], random_state=0))
+    print(*shuffle_paths([], random_state=0))
+
+
+if __name__ == "__main__":
+    test()
