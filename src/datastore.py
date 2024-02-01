@@ -24,18 +24,18 @@ def shuffle_sample_paths(
 
 
 class DSPreparer(ABC):
-    @property
-    def dataset(self):
-        return self._dataset
+    # @property
+    # def dataset(self):
+    #     return self._dataset
 
-    @dataset.setter
-    def dataset(self, value) -> None:
-        self._dataset = value
+    # @dataset.setter
+    # def dataset(self, value) -> None:
+    #     self._dataset = value
 
-    def __init__(self, images_dir: Path, masks_dir: Path) -> None:
+    def __init__(self, images_dir: Path, masks_dir: Path, save_dir: Path) -> None:
         self._images_dir = ImagesDir(images_dir)
         self._masks_dir = ImagesDir(masks_dir)
-        # self._save_dir = save_dir
+        self._save_dir = save_dir
         # self.dataset = tf.data.Dataset.from
 
     @abstractmethod
@@ -53,6 +53,7 @@ class DSPreparer(ABC):
 
 class InMemoryDSPreparer(DSPreparer):
     __img_load_fun: Callable[[str | Path], npt.NDArray] = imread
+    __ds_save_name = "dataset.npz"
 
     @property
     def X(self):
@@ -63,9 +64,14 @@ class InMemoryDSPreparer(DSPreparer):
         return self._y
 
     def __init__(
-        self, images_dir: Path, masks_dir: Path, random_state: int, shuffle=True
+        self,
+        images_dir: Path,
+        masks_dir: Path,
+        save_dir,
+        random_state: int,
+        shuffle=True,
     ) -> None:
-        super().__init__(images_dir, masks_dir)
+        super().__init__(images_dir, masks_dir, save_dir)
         self._X = np.array([])
         self._y = np.array([])
         self._random_state = random_state
@@ -80,19 +86,33 @@ class InMemoryDSPreparer(DSPreparer):
                 image_paths, mask_paths, self._random_state
             )
 
-        images = [self._load_image(p) for p in image_paths]
-        masks = [self._load_mask(p) for p in mask_paths]
+        images = [self._read_image(p) for p in image_paths]
+        masks = [self._read_mask(p) for p in mask_paths]
 
         self._X = np.array(images)
         self._y = np.array(masks)
 
     @classmethod
-    def _load_image(cls, path) -> npt.NDArray[Any]:
+    def _read_image(cls, path) -> npt.NDArray[Any]:
         return img_as_float32(cls.__img_load_fun(path))
 
     @classmethod
-    def _load_mask(cls, path):
+    def _read_mask(cls, path):
         return img_as_float32(cls.__img_load_fun(path)[..., 0])
+
+    def save(self, rewrite=False) -> None:
+        save_path = self._save_dir / self.__ds_save_name
+        suffix = 1
+        new_save_path = save_path
+        while True:
+            if rewrite or not new_save_path.exists():
+                save_path = new_save_path
+                break
+            new_save_path = new_save_path.with_stem(save_path.stem + f"_{suffix}")
+        self._save_ds(save_path)
+
+    def _save_ds(self, save_path):
+        np.savez(save_path, X=self.X, y=self.y)
 
 
 class PreshuffleDatastore(DSPreparer):
