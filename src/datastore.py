@@ -92,14 +92,6 @@ class InMemoryDSPreparer(DSPreparer):
         self._X = np.array(images)
         self._y = np.array(masks)
 
-    @classmethod
-    def _read_image(cls, path) -> npt.NDArray[Any]:
-        return img_as_float32(cls.__img_load_fun(path))
-
-    @classmethod
-    def _read_mask(cls, path):
-        return img_as_float32(cls.__img_load_fun(path)[..., 0])
-
     def save(self, rewrite=False) -> None:
         save_path = self._save_dir / self.__ds_save_name
         suffix = 1
@@ -111,13 +103,21 @@ class InMemoryDSPreparer(DSPreparer):
             new_save_path = new_save_path.with_stem(save_path.stem + f"_{suffix}")
         self._save_ds(save_path)
 
-    def _save_ds(self, save_path):
-        np.savez(save_path, X=self.X, y=self.y)
-
     def load(self) -> None:
         ds = self._load_ds(self._save_dir / self.__ds_save_name)
         self._X = ds["X"]
         self._y = ds["y"]
+
+    @classmethod
+    def _read_image(cls, path) -> npt.NDArray[Any]:
+        return img_as_float32(cls.__img_load_fun(path))
+
+    @classmethod
+    def _read_mask(cls, path):
+        return img_as_float32(cls.__img_load_fun(path)[..., 0])
+
+    def _save_ds(self, save_path):
+        np.savez(save_path, X=self.X, y=self.y)
 
     def _load_ds(self, load_path):
         return np.load(load_path)
@@ -201,7 +201,25 @@ def make_test_datastore(is_mini, mask_type: str) -> PreshuffleDatastore:
     return make_datastore("test", is_mini, mask_type)
 
 
-def __test():
+def test_in_mem_preparer():
+    ds_preparer = InMemoryDSPreparer(
+        io_config.get_samples_dir(is_mini=True, split="test", mask=None),
+        io_config.get_samples_dir(True, "test", mask="contours_insensitive"),
+        Path(r"results"),
+        0,
+    )
+    ds_preparer.prepare()
+    X = ds_preparer.X
+    y = ds_preparer.y
+    print(X.shape, X.dtype)
+    print(y.shape, y.dtype)
+
+    ds_preparer.save(True)
+
+    ds_preparer.load()
+
+
+def test():
     datastore = make_train_datastore(is_mini=True, mask_type="contours_insensitive")
     ds = datastore.dataset
     image, mask = next(ds.unbatch().take(1).as_numpy_iterator())  # type: ignore
@@ -214,4 +232,4 @@ def __test():
 
 
 if __name__ == "__main__":
-    __test()
+    test_in_mem_preparer()
