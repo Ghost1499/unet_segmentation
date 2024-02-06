@@ -6,7 +6,7 @@ from matplotlib.pyplot import imread, imshow, show, figure
 import numpy as np
 import tensorflow as tf
 import numpy.typing as npt
-from skimage.util import img_as_float32
+from skimage.util import img_as_float32, img_as_bool, img_as_ubyte
 
 from ImagesDir import ImagesDir
 from load_samples import load_image, load_resize_image, load_mask, load_resize_mask
@@ -52,16 +52,22 @@ class DSPreparer(ABC):
 
 
 class InMemoryDSPreparer(DSPreparer):
-    __img_load_fun: Callable[[str | Path], npt.NDArray] = imread
+    __img_read_fun: Callable[[str | Path], npt.NDArray] = imread
     __ds_save_name = "dataset.npz"
 
     @property
-    def X(self):
+    def X(self) -> NDArray[floating[Any]] | NDArray[Any] | NDArray[uint8] | Any:
         return self._X
+
+    def _make_X(self) -> None:
+        self._X = np.array(self.__images, np.float32) / 255
 
     @property
     def y(self):
         return self._y
+
+    def _make_y(self) -> None:
+        self._y = np.array(self.__images, np.uint8)
 
     def __init__(
         self,
@@ -86,11 +92,11 @@ class InMemoryDSPreparer(DSPreparer):
                 image_paths, mask_paths, self._random_state
             )
 
-        images = [self._read_image(p) for p in image_paths]
-        masks = [self._read_mask(p) for p in mask_paths]
+        self.__images = [self._read_image(p) for p in image_paths]
+        self.__masks = [self._read_mask(p) for p in mask_paths]
 
-        self._X = np.array(images)
-        self._y = np.array(masks)
+        self._make_X()
+        self._make_y()
 
     def save(self, rewrite=False) -> None:
         save_path = self._save_dir / self.__ds_save_name
@@ -109,12 +115,12 @@ class InMemoryDSPreparer(DSPreparer):
         self._y = ds["y"]
 
     @classmethod
-    def _read_image(cls, path) -> npt.NDArray[Any]:
-        return img_as_float32(cls.__img_load_fun(path))
+    def _read_image(cls, path) -> npt.NDArray[np.uint8]:
+        return img_as_ubyte(cls.__img_read_fun(path))
 
     @classmethod
-    def _read_mask(cls, path):
-        return img_as_float32(cls.__img_load_fun(path)[..., 0])
+    def _read_mask(cls, path) -> npt.NDArray[np.bool_]:
+        return img_as_bool(cls.__img_read_fun(path)[..., 0])
 
     def _save_ds(self, save_path):
         np.savez(save_path, X=self.X, y=self.y)
