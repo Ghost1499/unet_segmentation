@@ -64,14 +64,14 @@ class InMemoryDSPreparer(DSPreparer):
         return self._X
 
     def _make_X(self) -> None:
-        self._X = np.array(self.__images, self.__X_type) / 255
+        self._X = self.__images_array.astype(self.__X_type) / 255
 
     @property
     def y(self) -> npt.NDArray:
         return self._y
 
     def _make_y(self) -> None:
-        self._y = np.array(self.__images, self.__y_type)
+        self._y = self.__masks_array.astype(self.__y_type)
 
     def __init__(
         self,
@@ -96,8 +96,8 @@ class InMemoryDSPreparer(DSPreparer):
                 image_paths, mask_paths, self._random_state
             )
 
-        self.__images = [self._read_image(p) for p in image_paths]
-        self.__masks = [self._read_mask(p) for p in mask_paths]
+        self.__images_array = np.array([self._read_image(p) for p in image_paths])
+        self.__masks_array = np.array([self._read_mask(p) for p in mask_paths])
 
         self._make_X()
         self._make_y()
@@ -115,8 +115,8 @@ class InMemoryDSPreparer(DSPreparer):
 
     def load(self) -> None:
         ds = self._load_ds(self._save_dir / self.__ds_save_name)
-        self._X = ds["X"]
-        self._y = ds["y"]
+        self.__images_array = ds["images"]
+        self.__masks_array = ds["masks"]
 
     @classmethod
     def _read_image(cls, path) -> npt.NDArray[np.uint8]:
@@ -127,7 +127,7 @@ class InMemoryDSPreparer(DSPreparer):
         return img_as_bool(cls.__img_read_fun(path)[..., 0])
 
     def _save_ds(self, save_path):
-        np.savez(save_path, X=self.X, y=self.y)
+        np.savez(save_path, images=self.__images_array, masks=self.__masks_array)
 
     def _load_ds(self, load_path):
         return np.load(load_path)
