@@ -54,20 +54,24 @@ class DSPreparer(ABC):
 class InMemoryDSPreparer(DSPreparer):
     __img_read_fun: Callable[[str | Path], npt.NDArray] = imread
     __ds_save_name = "dataset.npz"
+    __X_type: npt.DTypeLike = np.float32
+    __y_type: npt.DTypeLike = np.uint8
 
     @property
-    def X(self) -> NDArray[floating[Any]] | NDArray[Any] | NDArray[uint8] | Any:
+    def X(
+        self,
+    ) -> npt.NDArray:
         return self._X
 
     def _make_X(self) -> None:
-        self._X = np.array(self.__images, np.float32) / 255
+        self._X = np.array(self.__images, self.__X_type) / 255
 
     @property
-    def y(self):
+    def y(self) -> npt.NDArray:
         return self._y
 
     def _make_y(self) -> None:
-        self._y = np.array(self.__images, np.uint8)
+        self._y = np.array(self.__images, self.__y_type)
 
     def __init__(
         self,
