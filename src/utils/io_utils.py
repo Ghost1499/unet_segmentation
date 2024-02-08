@@ -90,7 +90,7 @@ def save_dataset_npy(dataset_name):
     )
 
 
-def save_model(model_name):
+def save_model_arch(model_name):
     # image_shape = get_images_shapes(io_config.TRAIN_IMAGES_DIR)
     model = createUNetModel_My(
         model_config.TARGET_SHAPE,

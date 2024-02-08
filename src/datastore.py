@@ -43,7 +43,7 @@ class DSPreparer(ABC):
         pass
 
     @abstractmethod
-    def save(self) -> None:
+    def save(self, rewrite: bool = True) -> None:
         pass
 
     @abstractmethod

@@ -219,4 +219,4 @@ cython_debug/
 # project ignors
 data/*
 results/*
-src/test.py
+src/**/__testing.py
