@@ -1,23 +1,46 @@
+from configparser import ConfigParser, ExtendedInterpolation
+import json
+
+from keras.optimizers import Adam
+
 from configs import model_config, ds_prepare_config
 
 
-def make_config(is_debug, mode):
-    if mode == "segmentation":
-        import configs.training.segmentation as training_config
-    elif mode == "contours":
-        import configs.training.contours as training_config
-    else:
-        raise ValueError("Некорректный мод", mode)
+__optimizers = {"adam": Adam}
+
+
+def _create_oprimizer(name, **kwargs):
     try:
-        compile_params = training_config._compile_configs[model_config.OUT_SIZE]
-        compile_params["optimizer"] = training_config.OPTIMIZER
+        opt = __optimizers[name](**kwargs)
+        return opt
+    except KeyError as err:
+        raise Exception("Некорректное имя оптимизатора.", *err.args)
+
+
+def make_config(is_debug, mode):
+    train_config = ConfigParser(interpolation=ExtendedInterpolation())
+    read_files = train_config.read("params.ini")
+    if not read_files:
+        raise Exception("Конфигурация обучения модели не прочитана.")
+
+    if mode not in train_config.sections():
+        raise ValueError("Некорректный режим работы.")
+
+    try:
+        compile_params = {}
+        compile_params["optimizer"] = _create_oprimizer(
+            train_config[mode]["optimizer"],
+            learning_rate=train_config[mode].getfloat("learning_rate"),
+        )
+        compile_params["loss"] = train_config[mode]["loss"]
+        compile_params["metrics"] = json.loads(train_config[mode]["metrics"])
         compile_params["run_eagerly"] = is_debug
-        tr_conf = {
+        train_params = {
             "batch_size": ds_prepare_config.BATCH_SIZE,
-            "epochs": training_config.EPOCHS,
+            "epochs": train_config[mode].getint("epochs"),
             "validation_split": ds_prepare_config.VALIDATION_TRAIN_SIZE,
             "compile_params": compile_params,
         }
-    except AttributeError:
-        raise
-    return tr_conf
+    except KeyError as err:
+        raise Exception("Параметр конфигурации обучения не найден", *err.args)
+    return train_params
