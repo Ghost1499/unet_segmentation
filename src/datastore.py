@@ -34,10 +34,12 @@ class DSPreparer(ABC):
     def y(self) -> Optional[npt.NDArray]:
         return self._y
 
-    def __init__(self, images_dir: Path, masks_dir: Path, save_dir: Path) -> None:
+    def __init__(
+        self, images_dir: Path | str, masks_dir: Path | str, save_dir: Path | str
+    ) -> None:
         self._images_dir = ImagesDir(images_dir)
         self._masks_dir = ImagesDir(masks_dir)
-        self._save_dir = save_dir
+        self._save_dir = Path(save_dir)
         self._X = None
         self._y = None
 
@@ -46,7 +48,7 @@ class DSPreparer(ABC):
         pass
 
     @abstractmethod
-    def save(self, rewrite: bool = True) -> None:
+    def save(self, rewrite: bool = False) -> None:
         pass
 
     @abstractmethod
@@ -108,6 +110,9 @@ class InMemoryDSPreparer(DSPreparer):
         ds = self._load_ds(self._save_dir / self.__ds_save_name)
         self.__images_array = ds["images"]
         self.__masks_array = ds["masks"]
+
+        self._make_X()
+        self._make_y()
 
     @classmethod
     def _read_image(cls, path) -> npt.NDArray[np.uint8]:

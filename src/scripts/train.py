@@ -1,6 +1,11 @@
+from pathlib import Path
 import keras
 from keras.models import model_from_json
 from keras.callbacks import ModelCheckpoint, TensorBoard
+
+import sys
+
+sys.path.insert(0, str(Path("src").absolute()))
 
 from configs import io_config, ds_prepare_config
 from configs.make_train_config import make_config
@@ -58,7 +63,7 @@ class ModelTrainer:
     def train_model(self, load_ds=False, save=True) -> None:
         if not load_ds:
             self._ds_preparer.prepare()
-            self._ds_preparer.save()
+            self._ds_preparer.save(True)
         else:
             self._ds_preparer.load()
 
@@ -97,24 +102,26 @@ class ModelTrainer:
             self._create_tensorboard(),
         ]
         fit_kwargs = self._training_config.pop("fit_params")
-        fit_kwargs["X"] = X
+        fit_kwargs["x"] = X
         fit_kwargs["y"] = y
         fit_kwargs["callbacks"] = callbacks
+        fit_kwargs["shuffle"] = True
         return fit_kwargs
 
 
 def test():
+    mode = "contours"
     trainer = ModelTrainer(
         "unet0 contours insensitive",
-        "contours",
+        mode,
         InMemoryDSPreparer(
             io_config.get_samples_dir(True, "test"),
-            io_config.get_samples_dir(True, "test", "masks"),
+            io_config.get_samples_dir(True, "test", "contours_insensitive"),
             "results",
             ds_prepare_config.RANDOM_STATE,
             True,
         ),
-        make_config(False, "contours"),
+        make_config(False, mode),
     )
     trainer.train_model(True, True)
 
