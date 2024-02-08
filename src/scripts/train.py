@@ -72,6 +72,16 @@ class ModelTrainer(ABC):
 
         self._model.compile(**self._training_config.pop(["compile_params"]))
 
+        X = self._ds_preparer.X
+        y = self._ds_preparer.y
+        
+        if y is None:
+            if X is None:
+                raise Exception("Обучающий набор данных пустой")
+            # add fit
+        else:
+            
+        
         self._fit()
 
         if save:

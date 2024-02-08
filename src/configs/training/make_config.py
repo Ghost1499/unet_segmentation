@@ -1,12 +1,14 @@
 from configparser import ConfigParser, ExtendedInterpolation
 import json
+from pprint import pprint
 
 from keras.optimizers import Adam
 
-from configs import model_config, ds_prepare_config
+from src.configs import ds_prepare_config
 
 
 __optimizers = {"adam": Adam}
+__train_config_path = "configs/train.ini"
 
 
 def _create_oprimizer(name, **kwargs):
@@ -19,7 +21,7 @@ def _create_oprimizer(name, **kwargs):
 
 def make_config(is_debug, mode):
     train_config = ConfigParser(interpolation=ExtendedInterpolation())
-    read_files = train_config.read("params.ini")
+    read_files = train_config.read(__train_config_path)
     if not read_files:
         raise Exception("Конфигурация обучения модели не прочитана.")
 
@@ -44,3 +46,11 @@ def make_config(is_debug, mode):
     except KeyError as err:
         raise Exception("Параметр конфигурации обучения не найден", *err.args)
     return train_params
+
+
+def test():
+    pprint(make_config(False, "segmentation"))
+
+
+if __name__ == "__main__":
+    test()
