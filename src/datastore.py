@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Callable, Iterable
+from typing import Any, Callable, Iterable, Optional
 
 from matplotlib.pyplot import imread, imshow, show, figure
 import numpy as np
@@ -24,19 +24,22 @@ def shuffle_sample_paths(
 
 
 class DSPreparer(ABC):
-    # @property
-    # def dataset(self):
-    #     return self._dataset
+    @property
+    def X(
+        self,
+    ) -> Optional[npt.NDArray]:
+        return self._X
 
-    # @dataset.setter
-    # def dataset(self, value) -> None:
-    #     self._dataset = value
+    @property
+    def y(self) -> Optional[npt.NDArray]:
+        return self._y
 
     def __init__(self, images_dir: Path, masks_dir: Path, save_dir: Path) -> None:
         self._images_dir = ImagesDir(images_dir)
         self._masks_dir = ImagesDir(masks_dir)
         self._save_dir = save_dir
-        # self.dataset = tf.data.Dataset.from
+        self._X = None
+        self._y = None
 
     @abstractmethod
     def prepare(self):
@@ -57,18 +60,8 @@ class InMemoryDSPreparer(DSPreparer):
     __X_type: npt.DTypeLike = np.float32
     __y_type: npt.DTypeLike = np.uint8
 
-    @property
-    def X(
-        self,
-    ) -> npt.NDArray:
-        return self._X
-
     def _make_X(self) -> None:
         self._X = self.__images_array.astype(self.__X_type) / 255
-
-    @property
-    def y(self) -> npt.NDArray:
-        return self._y
 
     def _make_y(self) -> None:
         self._y = self.__masks_array.astype(self.__y_type)
@@ -82,8 +75,6 @@ class InMemoryDSPreparer(DSPreparer):
         shuffle=True,
     ) -> None:
         super().__init__(images_dir, masks_dir, save_dir)
-        self._X = np.array([])
-        self._y = np.array([])
         self._random_state = random_state
         self._shuffle = shuffle
 
