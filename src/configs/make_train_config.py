@@ -30,18 +30,33 @@ def make_config(is_debug, mode):
 
     try:
         compile_params = {}
+        mode_config = train_config[mode]
         compile_params["optimizer"] = _create_oprimizer(
-            train_config[mode]["optimizer"],
-            learning_rate=train_config[mode].getfloat("learning_rate"),
+            mode_config["optimizer"],
+            learning_rate=mode_config.getfloat("learning_rate"),
         )
-        compile_params["loss"] = train_config[mode]["loss"]
-        compile_params["metrics"] = json.loads(train_config[mode]["metrics"])
+        compile_params["loss"] = mode_config["loss"]
+        compile_params["metrics"] = json.loads(mode_config["metrics"])
         compile_params["run_eagerly"] = is_debug
-        train_params = {
+
+        fit_params = {
             "batch_size": ds_prepare_config.BATCH_SIZE,
-            "epochs": train_config[mode].getint("epochs"),
+            "epochs": mode_config.getint("epochs"),
             "validation_split": ds_prepare_config.VALIDATION_TRAIN_SIZE,
+        }
+
+        checkpointer_config = train_config["checkpointer"]
+        checkpointer_params = {
+            "monitor": checkpointer_config["monitor"],
+            "verbose": checkpointer_config.getint("verbose"),
+            "save_best_only": checkpointer_config.getboolean("save_best_only"),
+            "save_weights_only": checkpointer_config.getboolean("save_weights_only"),
+        }
+
+        train_params = {
             "compile_params": compile_params,
+            "checkpointer_params": checkpointer_params,
+            "fit_params": fit_params,
         }
     except KeyError as err:
         raise Exception("Параметр конфигурации обучения не найден", *err.args)

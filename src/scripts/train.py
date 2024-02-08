@@ -1,24 +1,16 @@
-from abc import ABC, abstractmethod
-from pathlib import Path
-
-import numpy as np
 import keras
 from keras.models import model_from_json
 from keras.callbacks import ModelCheckpoint, TensorBoard
 
-from configs import io_config, model_config, training_config, ds_prepare_config
-from configs.training.make_config import make_config
-from configs.training_config import COMPILE_CONFIGS
-from utils.io_utils import save_model_arch
+from configs import io_config, ds_prepare_config
+from configs.make_train_config import make_config
 from datastore import (
     DSPreparer,
     InMemoryDSPreparer,
-    make_train_datastore,
-    make_val_datastore,
 )
 
 
-class ModelTrainer(ABC):
+class ModelTrainer:
     __training_modes = ["segmentation", "contours"]
 
     @property
@@ -70,101 +62,62 @@ class ModelTrainer(ABC):
         else:
             self._ds_preparer.load()
 
-        self._model.compile(**self._training_config.pop(["compile_params"]))
+        self._model.compile(**self._training_config.pop("compile_params"))
 
         X = self._ds_preparer.X
         y = self._ds_preparer.y
-        
-        if y is None:
-            if X is None:
-                raise Exception("Обучающий набор данных пустой")
-            # add fit
-        else:
-            
-        
-        self._fit()
+
+        if y is None and X is None:
+            raise Exception("Обучающий набор данных пустой")
+
+        fit_kwargs = self._make_fit_kwargs(X, y)
+
+        self._model.fit(**fit_kwargs)
 
         if save:
             self.save_model()
 
-    @abstractmethod
-    def _fit(self):
-        pass
-
     def save_model(self) -> None:
         self._model.save(self.model_path)
 
+    def _create_checkpointer(self, **kwargs):
+        return ModelCheckpoint(
+            io_config.CHECKPOINTS_SAVE_DIR / f"{self._model_name}_{{epoch}}.keras",
+            **kwargs,
+        )
 
-class NumpyModelTrainer(ModelTrainer):
-    def __init__(
-        self,
-        model_name: str,
-        training_mode: str,
-        ds_preparer: InMemoryDSPreparer,
-        training_config: dict,
-    ) -> None:
-        super().__init__(model_name, training_mode, ds_preparer, training_config)
+    def _create_tensorboard(self, **kwargs):
+        return TensorBoard(str(io_config.TENSORBOARD_LOG_DIR), **kwargs)
 
-    def _fit(self):
-        X = self._ds_preparer.X
-        y = self._ds_preparer.y
-
-        checkpointer = ModelCheckpoint(
-            filepath=str(
-                io_config.CHECKPOINTS_SAVE_DIR / f"{self._model_name}_{{epoch}}.keras"
+    def _make_fit_kwargs(self, X, y):
+        callbacks = [
+            self._create_checkpointer(
+                **self._training_config.pop("checkpointer_params")
             ),
-            monitor="val_accuracy",
-            verbose=1,
-            save_best_only=True,
-            save_weights_only=False,
-        )
-        tboard = TensorBoard(io_config.TENSORBOARD_LOG_DIR)  # type: ignore
-        callbacks = [checkpointer, tboard]
-        self._model.fit(
-            X, y, shuffle=True, callbacks=callbacks, **self._training_config
-        )
+            self._create_tensorboard(),
+        ]
+        fit_kwargs = self._training_config.pop("fit_params")
+        fit_kwargs["X"] = X
+        fit_kwargs["y"] = y
+        fit_kwargs["callbacks"] = callbacks
+        return fit_kwargs
 
 
-def train_model(model_name):
-    with open(io_config.MODEL_SAVE_DIR / f"{model_name}_architecture.json") as f:
-        json_model = f.read()
-    model: keras.models.Model = model_from_json(json_model)
-    # image_shape = get_images_shapes(io_config.TRAIN_IMAGES_DIR)
-
-    train_ds = make_train_datastore(
-        is_mini=True, mask_type="contours_insensitive"
-    ).dataset
-    val_ds = make_val_datastore(is_mini=True, mask_type="contours_insensitive").dataset
-
-    model.compile(**comp_config)
-
-    checkpointer = ModelCheckpoint(
-        filepath=str(io_config.CHECKPOINTS_SAVE_DIR / f"{model_name}_{{epoch}}.keras"),
-        monitor="val_accuracy",
-        verbose=1,
-        save_best_only=True,
-        save_weights_only=False,
-    )
-    tboard = TensorBoard(io_config.TENSORBOARD_LOG_DIR)  # type: ignore
-    model.fit(
-        train_ds,
-        epochs=training_config.EPOCHS,
-        callbacks=[checkpointer, tboard],
-        validation_data=val_ds,
-        shuffle=False,
-    )
-    model.save(io_config.MODEL_SAVE_DIR / f"{model_name}.keras")
-
-
-def main():
-    trainer = NumpyModelTrainer(
+def test():
+    trainer = ModelTrainer(
         "unet0 contours insensitive",
         "contours",
-        InMemoryDSPreparer(),
+        InMemoryDSPreparer(
+            io_config.get_samples_dir(True, "test"),
+            io_config.get_samples_dir(True, "test", "masks"),
+            "results",
+            ds_prepare_config.RANDOM_STATE,
+            True,
+        ),
         make_config(False, "contours"),
     )
     trainer.train_model(True, True)
 
 
 if __name__ == "__main__":
-    main()
+    test()
