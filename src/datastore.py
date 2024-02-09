@@ -35,11 +35,11 @@ class DSPreparer(ABC):
         return self._y
 
     def __init__(
-        self, images_dir: Path | str, masks_dir: Path | str, save_dir: Path | str
+        self, images_dir: Path | str, masks_dir: Path | str, ds_path: Path | str
     ) -> None:
         self._images_dir = ImagesDir(images_dir)
         self._masks_dir = ImagesDir(masks_dir)
-        self._save_dir = Path(save_dir)
+        self._ds_path = Path(ds_path)
         self._X = None
         self._y = None
 
@@ -58,9 +58,9 @@ class DSPreparer(ABC):
 
 class InMemoryDSPreparer(DSPreparer):
     __img_read_fun: Callable[[str | Path], npt.NDArray] = imread
-    __ds_save_name = "dataset.npz"
     __X_type: npt.DTypeLike = np.float32
     __y_type: npt.DTypeLike = np.uint8
+    __ds_load_exts = [".npy", ".npz"]
 
     def _make_X(self) -> None:
         self._X = self.__images_array.astype(self.__X_type) / 255
@@ -96,18 +96,16 @@ class InMemoryDSPreparer(DSPreparer):
         self._make_y()
 
     def save(self, rewrite=False) -> None:
-        save_path = self._save_dir / self.__ds_save_name
-        suffix = 1
-        new_save_path = save_path
-        while True:
-            if rewrite or not new_save_path.exists():
-                save_path = new_save_path
-                break
-            new_save_path = new_save_path.with_stem(save_path.stem + f"_{suffix}")
-        self._save_ds(save_path)
+        if not rewrite and self._ds_path.exists():
+            return
+        self._save_ds(self._ds_path)
 
     def load(self) -> None:
-        ds = self._load_ds(self._save_dir / self.__ds_save_name)
+        if not self._ds_path.exists():
+            raise Exception(
+                "Набора данных по указанному пути не существует.", self._ds_path
+            )
+        ds = self._load_ds(self._ds_path)
         self.__images_array = ds["images"]
         self.__masks_array = ds["masks"]
 
@@ -122,10 +120,14 @@ class InMemoryDSPreparer(DSPreparer):
     def _read_mask(cls, path) -> npt.NDArray[np.bool_]:
         return img_as_bool(cls.__img_read_fun(path)[..., 0])
 
-    def _save_ds(self, save_path):
+    def _save_ds(self, save_path: Path):
         np.savez(save_path, images=self.__images_array, masks=self.__masks_array)
 
-    def _load_ds(self, load_path):
+    def _load_ds(self, load_path: Path):
+        if load_path.suffix not in self.__ds_load_exts:
+            raise ValueError(
+                "Некорректное расширение файла набора данных.", load_path.suffix
+            )
         return np.load(load_path)
 
 
