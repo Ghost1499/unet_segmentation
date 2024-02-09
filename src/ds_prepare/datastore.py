@@ -70,13 +70,13 @@ class InMemoryDSPreparer(DSPreparer):
 
     def __init__(
         self,
-        images_dir: Path,
-        masks_dir: Path,
-        save_dir,
+        images_dir: Path | str,
+        masks_dir: Path | str,
+        ds_path: Path | str,
         random_state: int,
         shuffle=True,
     ) -> None:
-        super().__init__(images_dir, masks_dir, save_dir)
+        super().__init__(images_dir, masks_dir, ds_path)
         self._random_state = random_state
         self._shuffle = shuffle
 
