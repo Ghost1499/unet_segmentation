@@ -1,5 +1,5 @@
 from configs import io_config, ds_prepare_config
-from DSPreparerFactory import DSPreparerFactory, InMemPrepFactory
+from ds_prepare.DSPreparerFactory import DSPreparerFactory, InMemPrepFactory
 
 
 __factories = {"in_mem": InMemPrepFactory}

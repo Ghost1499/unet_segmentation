@@ -4,10 +4,10 @@ import keras
 from keras.models import model_from_json
 from keras.callbacks import ModelCheckpoint, TensorBoard
 import sys
+
+sys.path.append(str(Path("src").absolute()))
+
 from ds_prepare.ds_prep_fact import create_train_fact, create_val_fact
-
-sys.path.insert(0, str(Path("src").absolute()))
-
 from configs import io_config
 from configs.make_train_config import make_config
 
@@ -38,9 +38,7 @@ class ModelTrainer:
         self._training_mode = value
 
     def __init__(self, model_name: str, training_mode: str, is_debug=False) -> None:
-        self._model_name = model_name
-        self.training_mode = training_mode
-        self.read_model(self._model_name, self.training_mode)
+        self.read_model(model_name, training_mode)
         self._train_ds_preparer = create_train_fact(
             self.training_mode
         ).create_ds_preparer()
@@ -96,17 +94,17 @@ class ModelTrainer:
         fit_kwargs = self._training_config.pop("fit_params")
 
         fit_kwargs["x"] = self._train_ds_preparer.X
-        if self._train_ds_preparer.y:
+        if self._train_ds_preparer.y is not None:
             fit_kwargs["y"] = self._train_ds_preparer.y
 
         # иначе используется validation_split
-        if self._val_ds_preparer:
+        if self._val_ds_preparer is not None:
             val_data = (
                 (
                     self._val_ds_preparer.X,
                     self._val_ds_preparer.y,
                 )
-                if self._val_ds_preparer.y
+                if self._val_ds_preparer.y is not None
                 else (self._val_ds_preparer.X)
             )
             fit_kwargs["validation_data"] = val_data
@@ -125,7 +123,7 @@ class ModelTrainer:
 def test() -> None:
     mode = "contours_ls"
     trainer = ModelTrainer("unet0cls", mode)
-    trainer.train_model(True, True)
+    trainer.train_model(True, False)
 
 
 if __name__ == "__main__":

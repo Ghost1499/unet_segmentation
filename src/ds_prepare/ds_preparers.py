@@ -8,14 +8,14 @@ import tensorflow as tf
 import numpy.typing as npt
 from skimage.util import img_as_float32, img_as_bool, img_as_ubyte
 
-from io.ImagesDir import ImagesDir
+from inout.ImagesDir import ImagesDir
 from ds_prepare.load_samples import (
     load_image,
     load_resize_image,
     load_mask,
     load_resize_mask,
 )
-from io.utils import shuffle_paths
+from inout.utils import shuffle_paths
 from configs import ds_prepare_config, io_config
 
 
