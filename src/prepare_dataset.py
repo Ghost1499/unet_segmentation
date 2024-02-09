@@ -19,7 +19,7 @@ from skimage.morphology import (
 from skimage.morphology.footprints import disk
 from tqdm import tqdm
 
-from src.ImagesDir import ImagesDir
+from io.ImagesDir import ImagesDir
 from src.configs import ds_prepare_config, io_config
 
 KERNEL_RADIUS = 3

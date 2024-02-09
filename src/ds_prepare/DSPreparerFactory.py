@@ -1,5 +1,5 @@
 from configs import io_config, ds_prepare_config
-from ds_prepare.datastore import DSPreparer, InMemoryDSPreparer
+from ds_prepare.ds_preparers import DSPreparer, InMemoryDSPreparer
 
 
 from abc import ABC, abstractmethod

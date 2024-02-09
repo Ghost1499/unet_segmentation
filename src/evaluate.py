@@ -2,7 +2,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 from skimage.io import imshow, show
 import keras
-from datastore import make_test_datastore
+from ds_prepare.ds_preparers import make_test_datastore
 
 
 def main(model_name):
