@@ -60,8 +60,7 @@ class ModelTrainer:
         fit_kwargs = self._make_fit_kwargs()
         self._model.fit(**fit_kwargs)
 
-        if save_ds:
-            self.save_model()
+        self.save_model()
 
     def save_model(self) -> None:
         self._model.save(self.model_path)
