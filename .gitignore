@@ -220,3 +220,4 @@ cython_debug/
 data/*
 results/*
 src/**/__testing.py
+src/unet_train_colab.ipynb
