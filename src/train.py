@@ -1,5 +1,5 @@
 from ds_prepare.ds_prep_fact import create_train_fact, create_val_fact
-from train.ModelTrainer import ModelTrainer
+from training.ModelTrainer import ModelTrainer
 
 __mask = "contours_ls"
 __model_name = "unet0cls"
