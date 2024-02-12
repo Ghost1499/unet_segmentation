@@ -1,4 +1,7 @@
 from abc import ABC, abstractmethod
+from pathlib import Path
+
+from configs import io_config
 
 
 class ModelManager:
@@ -16,8 +19,10 @@ class ModelManager:
     def model(self, value):
         self._model = value
 
-    def __init__(self, model_name: str, mode: str) -> None:
+    def __init__(self, model_name: str, model_mode: str) -> None:
         self._model = None
+        self._model_name = model_name
+        self._model_mode = model_mode
         super().__init__()
 
     def save_model(self):
@@ -31,3 +36,8 @@ class ModelManager:
 
     def write_model(self):
         pass
+
+    def _model_dir(self):
+        return io_config.MODEL_SAVE_DIR / Path(
+            self._model_name_sep.join([self._model_name, self._model_mode])
+        )
