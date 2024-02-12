@@ -8,7 +8,7 @@ from keras.utils import plot_model
 import numpy as np
 from skimage.io import imread
 
-from models import createUNetModel_My
+from model.models import createUNetModel_My
 from configs import model_config, io_config, ds_prepare_config
 
 
