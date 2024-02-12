@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from json import load
 from pathlib import Path
 
 import keras.saving
@@ -21,11 +22,14 @@ class ModelManager:
     def save_model(self,model:keras.Model,overwrite=False):
         save_path = self._model_dir()/self._save_name
         if not overwrite and save_path.exists():
-            raise Exception("Модель по заданному пути уже существует.",save_path)
+            raise Exception("Сохранённая модель по заданному пути уже существует.",save_path)
         model.save(save_path)
 
     def load_model(self):
-        self.model = keras.saving.load_model(self._model_dir() / self._save_name)
+        load_path = self._model_dir() / self._save_name
+        if not load_path.exists():
+            raise Exception("Заданный путь загрузки не существует.")
+        return keras.saving.load_model(load_path)
 
     def read_model(self):
         if self.
