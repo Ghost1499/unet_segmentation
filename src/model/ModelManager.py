@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from json import load
+import json
 from pathlib import Path
 
 import keras.saving
@@ -22,9 +23,10 @@ class ModelManager:
 
     def load_model(self):
         load_path = self._model_dir() / self._save_fname
-        if not load_path.exists():
-            raise Exception("Заданный путь загрузки модели не существует.")
-        return keras.saving.load_model(load_path)
+        try:
+            return keras.saving.load_model(load_path)
+        except ValueError as err:
+            raise Exception("Заданный путь загрузки модели не существует.", *err.args)
 
     def save_model(self, model: keras.Model, overwrite=False):
         save_path = self._model_dir() / self._save_fname
@@ -32,20 +34,28 @@ class ModelManager:
             raise Exception(
                 "Сохранённая модель по заданному пути уже существует.", save_path
             )
-        model.save(save_path)
+        model.save(save_path, overwrite)
 
     def read_model(self):
         read_path = self._model_dir() / self._arch_fname
-        if not read_path.exists():
+        try:
+            with open(read_path, "r") as json_file:
+                json_model = json_file.read()
+            return model_from_json(json_model)
+        except FileNotFoundError as err:
             raise Exception(
-                "Заданный путь чтения архитектуры модели не существует.", read_path
+                "Заданный путь чтения архитектуры модели не существует.", *err.args
             )
-        with open(read_path) as json_file:
-            json_model = json_file.read()
-        return model_from_json(json_model)
 
-    def write_model(self):
-        pass
+    def write_model(self, model: keras.Model, overwrite=False):
+        write_path = self._model_dir() / self._arch_fname
+        try:
+            with open(write_path, "x") as json_file:
+                json_file.write(model.to_json())
+        except FileExistsError as err:
+            raise Exception(
+                "Архитектура модели по заданному пути уже существует.", *err.args
+            )
 
     def _model_dir(self):
         return io_config.MODEL_SAVE_DIR / Path(
