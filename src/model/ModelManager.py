@@ -16,6 +16,22 @@ class ModelManager:
     _summary_fname = "summary.txt"
     _plot_fname = "plot.png"
 
+    @property
+    def model_name(self):
+        return self._model_name
+
+    @model_name.setter
+    def model_name(self, value):
+        self._model_name = value
+
+    @property
+    def model_mode(self):
+        return self._model_mode
+
+    @model_mode.setter
+    def model_mode(self, value):
+        self._model_mode = value
+
     def __init__(self, model_name: str, model_mode: str) -> None:
         self._model_name = model_name
         self._model_mode = model_mode
