@@ -5,6 +5,8 @@ from keras.models import model_from_json
 from keras.callbacks import ModelCheckpoint, TensorBoard
 import sys
 
+from model.ModelManager import ModelManager
+
 sys.path.append(str(Path("src").absolute()))
 
 from ds_prepare.ds_prep_fact import create_train_fact, create_val_fact
@@ -16,16 +18,16 @@ class ModelTrainer:
     __training_modes = ["segmentation", "contours", "contours_ls"]
 
     @property
-    def architect_path(self) -> Path:
-        return io_config.MODEL_SAVE_DIR / f"{self._model_name}_architecture.json"
+    def model_name(self):
+        return self._model_manager.model_name
 
-    @property
-    def model_path(self) -> Path:
-        return io_config.MODEL_SAVE_DIR / f"{self._model_name}.keras"
+    @model_name.setter
+    def model_name(self, value):
+        self._model_manager.model_name = value
 
     @property
     def training_mode(self):
-        return self._training_mode
+        return self._model_manager.model_mode
 
     @training_mode.setter
     def training_mode(self, value) -> None:
@@ -35,22 +37,19 @@ class ModelTrainer:
                 value,
                 self.__training_modes,
             )
-        self._training_mode = value
+        self._model_manager.model_mode = value
 
     def __init__(self, model_name: str, training_mode: str, is_debug=False) -> None:
-        self.read_model(model_name, training_mode)
+        self._model_manager = ModelManager(model_name, training_mode)
+        self.read_model()
         self._train_ds_preparer = create_train_fact(
             self.training_mode
         ).create_ds_preparer()
         self._val_ds_preparer = create_val_fact(self.training_mode).create_ds_preparer()
         self._training_config = make_config(is_debug, training_mode)
 
-    def read_model(self, model_name: str, training_mode: str) -> None:
-        self._model_name = model_name
-        self.training_mode = training_mode
-        with open(self.architect_path) as f:
-            json_model = f.read()
-        self._model: keras.models.Model = model_from_json(json_model)
+    def read_model(self) -> None:
+        self._model: keras.models.Model = self._model_manager.read_model()
 
     def train_model(self, load_ds=False, save_ds=True) -> None:
         self._model.compile(**self._training_config.pop("compile_params"))
@@ -60,14 +59,14 @@ class ModelTrainer:
         fit_kwargs = self._make_fit_kwargs()
         self._model.fit(**fit_kwargs)
 
-        self.save_model()
+        self._save_model()
 
-    def save_model(self) -> None:
-        self._model.save(self.model_path)
+    def _save_model(self, overwrite=True) -> None:
+        self._model_manager.save_model(self._model, overwrite)
 
     def _create_checkpointer(self, **kwargs) -> ModelCheckpoint:
         return ModelCheckpoint(
-            io_config.CHECKPOINTS_SAVE_DIR / f"{self._model_name}_{{epoch}}.keras",
+            io_config.CHECKPOINTS_SAVE_DIR / f"{self.model_name}_{{epoch}}.keras",
             **kwargs,
         )
 
