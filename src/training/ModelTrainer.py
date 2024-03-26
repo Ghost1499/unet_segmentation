@@ -3,12 +3,13 @@ from typing import Dict
 import keras
 from keras.models import model_from_json
 from keras.callbacks import ModelCheckpoint, TensorBoard
-import sys
+
+if __name__ == "__main__":
+    import sys
+
+    sys.path.append(str(Path("src").absolute()))
 
 from model.ModelManager import ModelManager
-
-sys.path.append(str(Path("src").absolute()))
-
 from ds_prepare.ds_prep_fact import create_train_fact, create_val_fact
 from configs import io_config
 from configs.make_train_config import make_config
@@ -119,8 +120,9 @@ class ModelTrainer:
 
 
 def test() -> None:
+    model = "unet0bn"
     mode = "contours_ls"
-    trainer = ModelTrainer("unet0cls", mode)
+    trainer = ModelTrainer(model, mode)
     trainer.train_model(True, False)
 
 
